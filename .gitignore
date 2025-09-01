@@ -4,6 +4,15 @@
 **/build/
 **/bin/
 
+# Protobuf generated files
+*.pb.go
+*.pb.h
+*.pb.cc
+*.pb.o
+*.grpc.pb.cc
+*.grpc.pb.h
+*.grpc.pb.go
+
 # Prerequisites
 *.d
 
