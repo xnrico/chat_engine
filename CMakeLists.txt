@@ -19,7 +19,7 @@ find_package(Threads REQUIRED)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-aux_source_directory(src SRC_LIST)
+# aux_source_directory(src SRC_LIST)
 file(GLOB PROTO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/proto/*.proto")
 
 # PROTOBUF GENERATION
@@ -53,6 +53,15 @@ protobuf_generate(
     IMPORT_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src/proto"
 )
 
-add_executable(chat_engine ${SRC_LIST})
-target_link_libraries(chat_engine chatproto)
-target_link_libraries(chat_engine Threads::Threads)
+add_executable(chat_server 
+              ${CMAKE_CURRENT_SOURCE_DIR}/src/server/chat_server.cpp
+              ${CMAKE_CURRENT_SOURCE_DIR}/src/server_main.cpp)
+add_executable(chat_client 
+              ${CMAKE_CURRENT_SOURCE_DIR}/src/client/chat_client.cpp
+              ${CMAKE_CURRENT_SOURCE_DIR}/src/client_main.cpp)
+
+
+target_link_libraries(chat_server chatproto)
+target_link_libraries(chat_server Threads::Threads)
+target_link_libraries(chat_client chatproto)
+target_link_libraries(chat_client Threads::Threads)
