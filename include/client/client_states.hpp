@@ -23,7 +23,7 @@ struct robot;
  * - Poll object detection status at constant frequency
  * 
  * Transitions:
- * - object detected (true) → start_stream_camera_state
+ * - object detected (true) → wait_stream_camera_state
  */
 struct idle_state;
 
@@ -38,7 +38,7 @@ struct idle_state;
  * - server not ready for stream → idle_state
  * - timeout (no response) → fault_state
  */
-struct start_stream_camera_state;
+struct wait_stream_camera_state;
 
 /**
  * @brief Handles video streaming and facial recognition
@@ -62,7 +62,7 @@ struct stream_camera_state;
  * - Playback response audio through speaker
  * 
  * Transitions:
- * - audio stream finished successfully → waiting_for_speech_state
+ * - audio stream finished successfully → detect_speech_state
  * - audio stream failed → fault_state
  * - timeout (no stream from server) → fault_state
  * - playback error → fault_state
@@ -76,10 +76,10 @@ struct greeting_state;
  * - Poll VAD (Voice Activity Detection) and wait for user speech
  * 
  * Transitions:
- * - user voice activity detected → start_stream_speech_state
+ * - user voice activity detected → wait_stream_speech_state
  * - timeout (no voice activity) → idle_state
  */
-struct waiting_for_speech_state;
+struct detect_speech_state;
 
 /**
  * @brief Prepares server for audio streaming
@@ -92,7 +92,7 @@ struct waiting_for_speech_state;
  * - server not ready for audio stream → idle_state
  * - timeout (no response) → fault_state
  */
-struct start_stream_speech_state;
+struct wait_stream_speech_state;
 
 /**
  * @brief Streams user speech to server
@@ -102,7 +102,7 @@ struct start_stream_speech_state;
  * - Receive response from server confirming stream reception
  * 
  * Transitions:
- * - server sends normal status → waiting_for_response_state
+ * - server sends normal status → wait_stream_response_state
  * - server sends bad response → fault_state
  * - timeout (no response) → fault_state
  */
@@ -118,7 +118,7 @@ struct stream_speech_state;
  * - server ready for audio stream → stream_response_state
  * - timeout (no response) → fault_state
  */
-struct waiting_for_response_state;
+struct wait_stream_response_state;
 
 /**
  * @brief Plays response audio from server
@@ -128,7 +128,7 @@ struct waiting_for_response_state;
  * - Play back audio through speaker
  * 
  * Transitions:
- * - audio stream finished successfully → waiting_for_speech_state
+ * - audio stream finished successfully → detect_speech_state
  * - audio stream failed → fault_state
  * - timeout (no stream from server) → fault_state
  * - playback error → fault_state
@@ -235,7 +235,7 @@ struct idle_state final : robot {
   }
 
   void react(const human_presence_event& e) override {
-    transit<facial_recognition_state>(
+    transit<wait_stream_camera_state>(
         [&e]() -> void {
           // Action function
           std::cout << "[idle::react] Human present, transitioning to active state" << std::endl;
