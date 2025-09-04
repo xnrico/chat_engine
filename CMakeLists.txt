@@ -11,13 +11,23 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
+# ZED SDK Options
+# option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
+
 find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Protobuf CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 find_package(Threads REQUIRED)
+find_package(ZED REQUIRED)
+find_package(CUDA ${ZED_CUDA_VERSION} REQUIRED)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CUDA_INCLUDE_DIRS})
+include_directories(${ZED_INCLUDE_DIRS})
+
+link_directories(${ZED_LIBRARY_DIR})
+link_directories(${CUDA_LIBRARY_DIRS})
 
 # aux_source_directory(src SRC_LIST)
 file(GLOB PROTO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/proto/*.proto")
@@ -60,8 +70,16 @@ add_executable(chat_client
               ${CMAKE_CURRENT_SOURCE_DIR}/src/client/chat_client.cpp
               ${CMAKE_CURRENT_SOURCE_DIR}/src/client_main.cpp)
 
+# Use static or dynamic library for ZED
+if (LINK_SHARED_ZED)
+    SET(ZED_LIBS ${ZED_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_CUDART_LIBRARY})
+else()
+    SET(ZED_LIBS ${ZED_STATIC_LIBRARIES} ${CUDA_CUDA_LIBRARY} ${CUDA_LIBRARY})
+endif()
+
 
 target_link_libraries(chat_server chatproto)
 target_link_libraries(chat_server Threads::Threads)
 target_link_libraries(chat_client chatproto)
 target_link_libraries(chat_client Threads::Threads)
+target_link_libraries(chat_client ${ZED_LIBS})
