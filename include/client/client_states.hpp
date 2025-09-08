@@ -73,7 +73,8 @@ struct robot;
  * - Starts all services and check for error
  *
  * Transitions:
- * - No errors → init_state
+ * - No errors → idle_state
+ * - Errors → terminated_state
  */
 
 struct init_state;
@@ -233,6 +234,7 @@ struct playback_error_event;
 struct server_ready_event;  // binary
 
 /* Initial state events*/
+struct init_success_event;
 struct camera_error_event;
 
 /* Idle state events*/
@@ -259,6 +261,10 @@ struct stream_response_failure_event;
 //=============================================================================
 // EVENT DEFINITIONS
 //=============================================================================
+
+struct init_success_event : tinyfsm::Event {
+  std::string name = "init_success_event";
+};
 
 struct camera_error_event : tinyfsm::Event {
   std::string name = "camera_error_event";

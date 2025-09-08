@@ -23,14 +23,18 @@ auto zed_camera::detect_objects() -> void {
 
   while (is_running.load()) {
     if (camera.grab() == sl::ERROR_CODE::SUCCESS) {
-      if (!video_capture.load()) std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      if (!object_detection.load()) continue;
+      if (!video_capture.load() || !object_detection.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        continue;
+      }
+
       camera.retrieveObjects(objects);
       process_objects();
     } else {
       std::cerr << "Error grabbing frame." << std::endl;
     }
-    // Process detected objects
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));  // Capture is only at 60FPS
   }
 
   // Disable streaming and object detection
@@ -48,18 +52,31 @@ auto zed_camera::process_objects() -> void {
     }
   }
 
-  human_detected.store(human_present);
+  // Invokes callbacks
+  if (human_detected.exchange(human_present) != human_detected.load()) {
+    if (human_detected.load()) {
+      on_human_detected();
+    } else {
+      on_human_lost();
+    }
+  }
 }
 
-zed_camera::zed_camera() : is_running{false}, human_detected{false}, video_capture{false}, object_detection{false} {
+zed_camera::zed_camera()
+    : is_running{false},
+      human_detected{false},
+      video_capture{false},
+      object_detection{false},
+      on_human_detected{[]() {}},  // initialize to empty functions
+      on_human_lost{[]() {}} {
   init_params.camera_resolution = sl::RESOLUTION::HD720;
   init_params.camera_fps = 60;
   init_params.depth_mode = sl::DEPTH_MODE::NEURAL;
   init_params.coordinate_units = sl::UNIT::METER;
 
-  stream_params.codec = sl::STREAMING_CODEC::H265; // H264 or H265
-  stream_params.bitrate = 6000; // in Kbps, good for HD720 @ 60 FPS
-  stream_params.port = 30000; // default port
+  stream_params.codec = sl::STREAMING_CODEC::H265;  // H264 or H265
+  stream_params.bitrate = 6000;                     // in Kbps, good for HD720 @ 60 FPS
+  stream_params.port = 30000;                       // default port
 
   obj_params.enable_tracking = true;
   obj_params.enable_segmentation = true;
