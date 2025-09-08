@@ -21,6 +21,8 @@ class client_state_manager {
     if (!camera.start()) robot::dispatch(camera_error_event{});
     camera.set_on_human_detected([]() { robot::dispatch(human_presence_event{true}); });
     camera.set_on_human_lost([]() { robot::dispatch(human_presence_event{false}); });
+
+    
     robot::dispatch(init_success_event{});
     return true;
   }

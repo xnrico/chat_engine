@@ -34,7 +34,7 @@ auto zed_camera::detect_objects() -> void {
       std::cerr << "Error grabbing frame." << std::endl;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));  // Capture is only at 60FPS
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));  // Capture is only at 60 FPS
   }
 
   // Disable streaming and object detection
