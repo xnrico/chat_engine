@@ -1,4 +1,4 @@
-#include "client/zed_camera.hpp"
+#include "client/camera/zed_camera.hpp"
 
 #include <atomic>
 #include <fstream>
@@ -62,13 +62,7 @@ auto zed_camera::process_objects() -> void {
   }
 }
 
-zed_camera::zed_camera()
-    : is_running{false},
-      human_detected{false},
-      video_capture{false},
-      object_detection{false},
-      on_human_detected{[]() {}},  // initialize to empty functions
-      on_human_lost{[]() {}} {
+zed_camera::zed_camera() {
   init_params.camera_resolution = sl::RESOLUTION::HD720;
   init_params.camera_fps = 60;
   init_params.depth_mode = sl::DEPTH_MODE::NEURAL;

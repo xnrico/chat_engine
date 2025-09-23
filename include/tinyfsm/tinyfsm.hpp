@@ -39,6 +39,7 @@
 #define TINYFSM_HPP_INCLUDED
 
 #ifndef TINYFSM_NOSTDLIB
+#include <mutex>
 #include <type_traits>
 #endif
 
@@ -123,9 +124,12 @@ class Fsm {
 
   /// state transition functions
  protected:
+  std::mutex transition_mtx;  // rico added this for thread safety
+
   template <typename S>
   void transit(void) {
     static_assert(is_same_fsm<F, S>::value, "transit to different state machine");
+    auto lock = std::unique_lock<std::mutex>(transition_mtx);
     current_state_ptr->exit();
     current_state_ptr = &_state_instance<S>::value;
     current_state_ptr->entry();
@@ -134,6 +138,7 @@ class Fsm {
   template <typename S, typename ActionFunction>
   void transit(ActionFunction action_function) {
     static_assert(is_same_fsm<F, S>::value, "transit to different state machine");
+    auto lock = std::unique_lock<std::mutex>(transition_mtx);
     current_state_ptr->exit();
     // NOTE: do not send events in action_function definisions.
     action_function();
@@ -143,6 +148,7 @@ class Fsm {
 
   template <typename S, typename ActionFunction, typename ConditionFunction>
   void transit(ActionFunction action_function, ConditionFunction condition_function) {
+    auto lock = std::unique_lock<std::mutex>(transition_mtx);
     if (condition_function()) {
       transit<S>(action_function);
     }
