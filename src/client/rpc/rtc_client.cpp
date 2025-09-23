@@ -1,4 +1,4 @@
-#include "client/rtc_client.hpp"
+#include "client/rpc/rtc_client.hpp"
 
 #include <nlohmann/json.hpp>
 #include <random>

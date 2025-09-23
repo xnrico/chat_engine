@@ -148,7 +148,6 @@ class Fsm {
 
   template <typename S, typename ActionFunction, typename ConditionFunction>
   void transit(ActionFunction action_function, ConditionFunction condition_function) {
-    auto lock = std::unique_lock<std::mutex>(transition_mtx);
     if (condition_function()) {
       transit<S>(action_function);
     }

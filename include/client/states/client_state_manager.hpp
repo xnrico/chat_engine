@@ -1,19 +1,21 @@
 #pragma once
 
-#include "client/client_states.hpp"
-#include "client/camera/laptop_camera.hpp"
-
 #include <memory>
+
+#include "client_states.hpp"
 
 // All calls to state transitions should be made through this manager
 class client_state_manager {
  private:
-  std::unique_ptr<generic_camera> camera;
+  std::shared_ptr<generic_camera> camera;
+  std::shared_ptr<rtc_client> client;
 
-  client_state_manager() : camera(std::make_unique<laptop_camera>()) {
+  client_state_manager() : camera{std::make_shared<laptop_camera>()}, client{std::make_shared<rtc_client>()} {
+    robot::camera = camera;
+    robot::client = client;
     robot::start();
   }
-  
+
   ~client_state_manager();
 
  public:

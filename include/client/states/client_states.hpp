@@ -264,7 +264,9 @@ struct stream_response_failure_event;
 
 // Main state machine for robot (chat client)
 struct robot : public tinyfsm::MealyMachine<robot> {
- public:
+  static std::shared_ptr<generic_camera> camera;
+  static std::shared_ptr<rtc_client> client;
+
   virtual void react(const generic_event&) {
     // Default event handler
     std::cout << "\033[31m" << "[" << to_string(this->get_state()) << "::react] cannot handle event [generic_event]\n"
@@ -495,6 +497,22 @@ struct idle_state final : robot {
 };
 
 struct wait_stream_camera_state final : robot {
+ private:
+  std::thread work_thread;
+
+  auto process() -> void {}
+
+ public:
+  auto entry() -> void override {
+    work_thread = std::thread([this]() { this->process(); });
+  }
+
+  auto exit() -> void override {
+    if (work_thread.joinable()) {
+      work_thread.join();
+    }
+  }
+
   auto react(const server_ready_event& e) -> void override {
     transit<stream_camera_state>(
         [&e]() -> void {
@@ -510,7 +528,6 @@ struct wait_stream_camera_state final : robot {
   }
 
   auto react(const timeout_event& e) -> void override { transit<fault_state>(); }
-
   auto get_state() const -> client_state override { return client_state::WAIT_STREAM_CAMERA; }
 };
 

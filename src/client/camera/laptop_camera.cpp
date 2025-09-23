@@ -1,6 +1,7 @@
 #include "client/camera/laptop_camera.hpp"
 
 #include <chrono>
+#include <random>
 
 using namespace std::chrono_literals;
 
@@ -8,6 +9,7 @@ laptop_camera::laptop_camera() {}
 
 auto laptop_camera::detect_objects() -> void {
   while (is_running.load()) {
+    process_objects();
     std::this_thread::sleep_for(std::chrono::milliseconds(20));  // Capture is only at 60 FPS
   }
 }
@@ -15,11 +17,13 @@ auto laptop_camera::detect_objects() -> void {
 auto laptop_camera::process_objects() -> void {
   static auto last_time = std::chrono::steady_clock::now();
   static auto human_present = false;
+  static auto rng = std::default_random_engine{};
+  static auto dist = std::uniform_int_distribution<int>{0, 1};
 
   // Simulate human detection
   if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - last_time) > 1s) {
     last_time = std::chrono::steady_clock::now();
-    human_present = rand() % 2 == 0;
+    human_present = dist(rng);
   }
 
   // Invokes callbacks

@@ -1,4 +1,4 @@
-#include "client/client_state_manager.hpp"
+#include "client/states/client_state_manager.hpp"
 #include "grpc/chat.grpc.pb.h"
 
 #include <grpcpp/grpcpp.h>
