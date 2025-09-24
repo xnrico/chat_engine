@@ -1,19 +1,33 @@
 #include "client/rpc/rtc_client.hpp"
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <quill/Backend.h>
+#include <quill/Frontend.h>
+#include <quill/LogMacros.h>
+#include <quill/Logger.h>
+#include <quill/sinks/ConsoleSink.h>
+#include <sys/socket.h>
+
 #include <nlohmann/json.hpp>
 #include <random>
 
-rtc_client::rtc_client() {
-  // Initialize WebSocket and PeerConnection
-  auto channel = grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials());
-  auto stub = chat::chat_service::NewStub(channel);
-}
+#include "grpc/chat.grpc.pb.h"
+#include "grpc/signaling.grpc.pb.h"
+
+rtc_client::rtc_client()
+    : logger{quill::Frontend::create_or_get_logger(
+          getenv("USER") ? getenv("USER") : "unknown_user",
+          quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_rtc"))},
+      channel{grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials())},
+      signaling_stub{signaling::signaling_service::NewStub(channel)},
+      chat_stub{chat::chat_service::NewStub(channel)} {}
 
 rtc_client::~rtc_client() {
   // Clean up resources
 }
 
-auto generate_id(size_t n) -> std::string {  // generate random id of length n
+auto generate_id(size_t n = 8) -> std::string {  // generate random id of length n
   static thread_local std::mt19937 rng(
       static_cast<unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
   static const std::string dictionary("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
@@ -24,46 +38,74 @@ auto generate_id(size_t n) -> std::string {  // generate random id of length n
   return id;
 }
 
-auto rtc_client::create_pc(std::weak_ptr<rtc::WebSocket> wws, const std::string& remote_id)
-    -> std::shared_ptr<rtc::PeerConnection> {
+auto rtc_client::create_pc(const std::string &remote_id) -> std::shared_ptr<rtc::PeerConnection> {
   auto pc = std::make_shared<rtc::PeerConnection>(config);
 
-  pc->onStateChange([](rtc::PeerConnection::State state) {
-    std::cout << "PeerConnection state changed: " << static_cast<int>(state) << std::endl;
+  pc->onStateChange([this](rtc::PeerConnection::State state) {
+    LOG_DEBUG(logger, "PeerConnection state changed: {}", static_cast<int>(state));
   });
 
-  pc->onGatheringStateChange([](rtc::PeerConnection::GatheringState state) {
-    std::cout << "Gathering state changed: " << static_cast<int>(state) << std::endl;
+  pc->onGatheringStateChange([this, pc](rtc::PeerConnection::GatheringState state) {
+    LOG_DEBUG(logger, "Gathering state changed: {}", static_cast<int>(state));
+    if (state == rtc::PeerConnection::GatheringState::Complete) {
+      LOG_DEBUG(logger, "ICE Gathering complete");
+      auto description = pc->localDescription();
+      LOG_DEBUG(logger, "Local description: {}", std::string{description.value()});
+
+      auto request = signaling::offer_request{};
+      auto response = std::make_shared<signaling::offer_response>();
+
+      request.set_sdp(std::string{description.value()});
+
+      LOG_DEBUG(logger, "Sent offer to signaling server");
+      auto ret = signaling_stub->offer(nullptr, std::move(request), response.get());
+
+      if (ret.ok()) {
+        LOG_DEBUG(logger, "Received response from signaling server: {}", response->sdp());
+        pc->setRemoteDescription(response->sdp());
+      } else {
+        LOG_ERROR(logger, "Failed to receive response from signaling server");
+      }
+    }
   });
 
-  pc->onLocalDescription([wws, remote_id](rtc::Description description) {
-    nlohmann::json message = {
-        {"id", remote_id}, {"type", description.typeString()}, {"description", std::string(description)}};
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  struct sockaddr_in addr = {};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  addr.sin_port = htons(6000);
 
-    if (auto ws = wws.lock()) ws->send(message.dump());
-  });
+  if (bind(sock, reinterpret_cast<const sockaddr *>(&addr), sizeof(addr)) < 0)
+    throw std::runtime_error("Failed to bind UDP socket on 127.0.0.1:6000");
 
-  pc->onDataChannel([this, remote_id](std::shared_ptr<rtc::DataChannel> dc) {
-    std::cout << "DataChannel from " << remote_id << " received with label \"" << dc->label() << "\"" << std::endl;
+  int rcvBufSize = 212992;
+  setsockopt(sock, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char *>(&rcvBufSize), sizeof(rcvBufSize));
 
-    dc->onOpen([this, wdc = std::weak_ptr(dc)]() {
-      if (auto dc = wdc.lock()) dc->send("Hello from " + local_id);
-    });
+  const rtc::SSRC ssrc = 42;
+  rtc::Description::Video media("video", rtc::Description::Direction::SendOnly);
+  media.addH264Codec(96);  // Must match the payload type of the external h264 RTP stream
+  media.addSSRC(ssrc, "video-send");
+  auto track = pc->addTrack(media);
 
-    dc->onClosed([remote_id]() { std::cout << "DataChannel from " << remote_id << " closed" << std::endl; });
+  pc->setLocalDescription();
 
-    dc->onMessage([remote_id](auto data) {
-      // data holds either std::string or rtc::binary
-      if (std::holds_alternative<std::string>(data))
-        std::cout << "Message from " << remote_id << " received: " << std::get<std::string>(data) << std::endl;
-      else
-        std::cout << "Binary message from " << remote_id << " received, size=" << std::get<rtc::binary>(data).size()
-                  << std::endl;
-    });
-
-    data_channels.emplace(remote_id, dc);
-  });
+  // std::atomic_bool running{true};
 
   peer_connections.emplace(remote_id, pc);
   return pc;
+}
+
+auto rtc_client::stream_media(int sock) -> void {
+  // std::array<uint8_t, 2048> buf;
+  // while (running) {
+  //   ssize_t n = recv(sock, buf.data(), buf.size(), 0);
+  //   if (n <= 0) continue;
+  //   try {
+  //     auto pkt = rtc::RtpPacket::parse(buf.data(), size_t(n));
+  //     track->send(std::move(pkt));
+  //   } catch (const std::exception &e) {
+  //     LOG_ERROR(logger, "RTP parse/send failed: {}", e.what());
+  //   }
+  // }
+  // close(sock);
 }

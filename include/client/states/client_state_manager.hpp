@@ -3,9 +3,9 @@
 #include <memory>
 
 #include "client_states.hpp"
-#include "quill/Backend.h"
-#include "quill/Frontend.h"
-#include "quill/sinks/ConsoleSink.h"
+#include <quill/Backend.h>
+#include <quill/Frontend.h>
+#include <quill/sinks/ConsoleSink.h>
 
 // All calls to state transitions should be made through this manager
 class client_state_manager {
@@ -19,7 +19,7 @@ class client_state_manager {
         client{std::make_shared<rtc_client>()},
         logger{quill::Frontend::create_or_get_logger(
             getenv("USER") ? getenv("USER") : "unknown_user",
-            quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1"))} {
+            quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_csm"))} {
     // logger configuration
     quill::Backend::start();
     logger->set_log_level(quill::LogLevel::TraceL3);

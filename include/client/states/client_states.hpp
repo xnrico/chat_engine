@@ -1,8 +1,5 @@
 #pragma once
 
-#include <quill/LogMacros.h>
-#include <quill/Logger.h>
-
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -61,9 +58,6 @@ inline auto to_string(client_state state) -> std::string {
       return "UNKNOWN";
   }
 }
-
-// Forward declarations for state machine and states
-struct robot;
 
 //=============================================================================
 // STATE DECLARATIONS
@@ -267,34 +261,7 @@ struct stream_response_failure_event;
 // STATE MACHINE DECLARATIONS
 //=============================================================================
 
-struct robot : public tinyfsm::MealyMachine<robot> {
-  static std::shared_ptr<generic_camera> camera;
-  static std::shared_ptr<rtc_client> client;
-  static std::shared_ptr<quill::Logger> logger;
-
-  virtual void react(const reset_event&);
-  virtual void react(const terminate_event&);
-  virtual void react(const generic_event&);
-  virtual void react(const timeout_event&);
-  virtual void react(const network_error_event&);
-  virtual void react(const playback_error_event&);
-  virtual void react(const server_ready_event&);
-  virtual void react(const init_success_event&);
-  virtual void react(const camera_error_event&);
-  virtual void react(const human_presence_event&);
-  virtual void react(const facial_recognition_response_event&);
-  virtual void react(const greeting_success_event&);
-  virtual void react(const greeting_failure_event&);
-  virtual void react(const user_speech_detected_event&);
-  virtual void react(const stream_speech_success_event&);
-  virtual void react(const stream_speech_failure_event&);
-  virtual void react(const stream_response_success_event&);
-  virtual void react(const stream_response_failure_event&);
-
-  virtual void entry();
-  virtual void exit();
-  virtual client_state get_state() const = 0;
-};
+struct robot;
 
 //=============================================================================
 // STATE MACHINE DEFINITIONS
