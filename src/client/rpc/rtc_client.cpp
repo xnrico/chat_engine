@@ -5,6 +5,8 @@
 
 rtc_client::rtc_client() {
   // Initialize WebSocket and PeerConnection
+  auto channel = grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials());
+  auto stub = chat::chat_service::NewStub(channel);
 }
 
 rtc_client::~rtc_client() {

@@ -4,6 +4,8 @@
 **/build/
 **/bin/
 
+# submodules
+
 # Protobuf generated files
 *.pb.go
 *.pb.h

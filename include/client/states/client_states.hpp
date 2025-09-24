@@ -1,5 +1,8 @@
 #pragma once
 
+#include <quill/LogMacros.h>
+#include <quill/Logger.h>
+
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -232,6 +235,8 @@ struct timeout_event;
 struct network_error_event;
 struct playback_error_event;
 struct server_ready_event;  // binary
+struct reset_event;
+struct terminate_event;
 
 /* Initial state events*/
 struct init_success_event;
@@ -266,100 +271,81 @@ struct stream_response_failure_event;
 struct robot : public tinyfsm::MealyMachine<robot> {
   static std::shared_ptr<generic_camera> camera;
   static std::shared_ptr<rtc_client> client;
+  static std::shared_ptr<quill::Logger> logger;
+
+  virtual void react(const reset_event&) {
+    LOG_WARNING(logger, "[reset::react] going to idle state after [reset_event]");
+    transit<idle_state>();
+  }
+
+  virtual void react(const terminate_event&) {
+    LOG_WARNING(logger, "[terminate::react] going to terminated state after [terminate_event]");
+    transit<terminated_state>();
+  }
 
   virtual void react(const generic_event&) {
     // Default event handler
-    std::cout << "\033[31m" << "[" << to_string(this->get_state()) << "::react] cannot handle event [generic_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[generic::react] cannot handle event [generic_event]");
   }
 
   virtual void react(const timeout_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state()) << "::react] cannot handle event [timeout_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[timeout::react] cannot handle event [timeout_event]");
   }
 
   virtual void react(const network_error_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [network_error_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[network::react] cannot handle event [network_error_event]");
   }
 
   virtual void react(const playback_error_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [playback_error_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[playback::react] cannot handle event [playback_error_event]");
   }
 
   virtual void react(const server_ready_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [server_ready_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[server::react] cannot handle event [server_ready_event]");
   }
 
   virtual void react(const init_success_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [init_success_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[init::react] cannot handle event [init_success_event]");
   }
 
   virtual void react(const camera_error_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [camera_error_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[camera::react] cannot handle event [camera_error_event]");
   }
 
   virtual void react(const human_presence_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [human_presence_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[human::react] cannot handle event [human_presence_event]");
   }
 
   virtual void react(const facial_recognition_response_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [facial_recognition_response_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[facial::react] cannot handle event [facial_recognition_response_event]");
   }
 
   virtual void react(const greeting_success_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [greeting_success_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[greeting::react] cannot handle event [greeting_success_event]");
   }
 
   virtual void react(const greeting_failure_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [greeting_failure_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[greeting::react] cannot handle event [greeting_failure_event]");
   }
 
   virtual void react(const user_speech_detected_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [user_speech_detected_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[user::react] cannot handle event [user_speech_detected_event]");
   }
 
   virtual void react(const stream_speech_success_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [stream_speech_success_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[stream::react] cannot handle event [stream_speech_success_event]");
   }
 
   virtual void react(const stream_speech_failure_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [stream_speech_failure_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[stream::react] cannot handle event [stream_speech_failure_event]");
   }
 
   virtual void react(const stream_response_success_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [stream_response_success_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[stream::react] cannot handle event [stream_response_success_event]");
   }
 
   virtual void react(const stream_response_failure_event&) {
-    std::cout << "\033[31m" << "[" << to_string(this->get_state())
-              << "::react] cannot handle event [stream_response_failure_event]\n"
-              << "\033[0m";
+    LOG_WARNING(logger, "[stream::react] cannot handle event [stream_response_failure_event]");
   }
 
   virtual void entry() {}
@@ -459,16 +445,24 @@ struct stream_response_failure_event : tinyfsm::Event {
 // STATE DECLARATIONS
 //=============================================================================
 struct init_state final : robot {
+  auto entry() -> void override {
+    LOG_INFO(logger, "[init::entry] Entering init state, performing initialization");
+    if (!camera->start()) robot::dispatch(camera_error_event{});
+    camera->set_on_human_detected([]() { robot::dispatch(human_presence_event{true}); });
+    camera->set_on_human_lost([]() { robot::dispatch(human_presence_event{false}); });
+    robot::dispatch(init_success_event{});
+  }
+
   auto react(const init_success_event& e) -> void override {
     transit<idle_state>([&e]() -> void {
       // Action function
-      std::cout << "[init::react] Initialization successful, transitioning to idle state" << std::endl;
+      LOG_INFO(logger, "[init::react] Initialization successful, transitioning to idle state");
     });
   }
   auto react(const camera_error_event& e) -> void override {
     transit<terminated_state>([&e]() -> void {
       // Action function
-      std::cout << "[init::react] Camera error occurred, transitioning to terminated state" << std::endl;
+      LOG_ERROR(logger, "[init::react] Camera error occurred, transitioning to terminated state");
     });
   }
 
@@ -477,7 +471,7 @@ struct init_state final : robot {
 
 struct terminated_state final : robot {
   auto get_state() const -> client_state override { return client_state::TERMINATED; }
-  auto entry() -> void override { std::cout << "[terminated::entry] Entering terminated state" << std::endl; }
+  auto entry() -> void override { LOG_INFO(logger, "[terminated::entry] Entering terminated state"); }
 };
 
 struct idle_state final : robot {
@@ -485,7 +479,7 @@ struct idle_state final : robot {
     transit<wait_stream_camera_state>(
         [&e]() -> void {
           // Action function
-          std::cout << "[idle::react] Human present, transitioning to active state" << std::endl;
+          LOG_INFO(logger, "[idle::react] Human present, transitioning to active state");
         },
         [&e]() -> bool {
           // Condition function
@@ -517,9 +511,7 @@ struct wait_stream_camera_state final : robot {
     transit<stream_camera_state>(
         [&e]() -> void {
           // Action function
-          std::cout
-              << "[wait_stream_camera::react] Server ready for camera stream, transitioning to stream_camera_state"
-              << std::endl;
+          LOG_INFO(logger, "[wait_stream_camera::react] Server ready for camera stream, transitioning to stream_camera_state");
         },
         [&e]() -> bool {
           // Condition function
@@ -536,9 +528,7 @@ struct stream_camera_state final : robot {
     transit<greeting_state>(
         [&e]() -> void {
           // Action function
-          std::cout
-              << "[stream_camera::react] Facial recognition indicates not greeted, transitioning to greeting_state"
-              << std::endl;
+          LOG_INFO(logger, "[stream_camera::react] Facial recognition indicates not greeted, transitioning to greeting_state");
         },
         [&e]() -> bool {
           // Condition function
@@ -548,9 +538,7 @@ struct stream_camera_state final : robot {
     transit<wait_stream_speech_state>(
         [&e]() -> void {
           // Action function
-          std::cout << "[stream_camera::react] Facial recognition indicates greeted, transitioning to "
-                       "wait_stream_speech_state"
-                    << std::endl;
+          LOG_INFO(logger, "[stream_camera::react] Facial recognition indicates greeted, transitioning to wait_stream_speech_state");
         },
         [&e]() -> bool {
           // Condition function
@@ -561,7 +549,7 @@ struct stream_camera_state final : robot {
   auto react(const timeout_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[stream_camera::react] Timeout occurred, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[stream_camera::react] Timeout occurred, transitioning to fault_state");
     });
   }
 
@@ -572,28 +560,28 @@ struct greeting_state final : robot {
   auto react(const greeting_success_event& e) -> void override {
     transit<detect_speech_state>([&e]() -> void {
       // Action function
-      std::cout << "[greeting::react] Greeting successful, transitioning to detect_speech_state" << std::endl;
+      LOG_INFO(logger, "[greeting::react] Greeting successful, transitioning to detect_speech_state");
     });
   }
 
   auto react(const greeting_failure_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[greeting::react] Greeting failed, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[greeting::react] Greeting failed, transitioning to fault_state");
     });
   }
 
   auto react(const timeout_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[greeting::react] Timeout occurred, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[greeting::react] Timeout occurred, transitioning to fault_state");
     });
   }
 
   auto react(const playback_error_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[greeting::react] Playback error occurred, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[greeting::react] Playback error occurred, transitioning to fault_state");
     });
   }
 
@@ -605,7 +593,7 @@ struct detect_speech_state final : robot {
     transit<wait_stream_speech_state>(
         [&e]() -> void {
           // Action function
-          std::cout << "[detect_speech::react] Speech detected, transitioning to wait_stream_speech_state" << std::endl;
+          LOG_INFO(logger, "[detect_speech::react] Speech detected, transitioning to wait_stream_speech_state");
         },
         [&e]() -> bool { return e.detected; });
   }
@@ -613,7 +601,7 @@ struct detect_speech_state final : robot {
   auto react(const timeout_event& e) -> void override {
     transit<idle_state>([&e]() -> void {
       // Action function
-      std::cout << "[detect_speech::react] Timeout occurred, transitioning to idle_state" << std::endl;
+      LOG_INFO(logger, "[detect_speech::react] Timeout occurred, transitioning to idle_state");
     });
   }
 
@@ -625,9 +613,7 @@ struct wait_stream_speech_state final : robot {
     transit<stream_speech_state>(
         [&e]() -> void {
           // Action function
-          std::cout
-              << "[wait_stream_speech::react] Server ready for speech stream, transitioning to stream_speech_state"
-              << std::endl;
+          LOG_INFO(logger, "[wait_stream_speech::react] Server ready for speech stream, transitioning to stream_speech_state");
         },
         [&e]() -> bool {
           // Condition function
@@ -637,7 +623,7 @@ struct wait_stream_speech_state final : robot {
     transit<fault_state>(
         [&e]() -> void {
           // Action function
-          std::cout << "[wait_stream_speech::react] Fault occurred, transitioning to fault_state" << std::endl;
+          LOG_ERROR(logger, "[wait_stream_speech::react] Fault occurred, transitioning to fault_state");
         },
         [&e]() -> bool {
           // Condition function
@@ -648,7 +634,7 @@ struct wait_stream_speech_state final : robot {
   auto react(const timeout_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[wait_stream_speech::react] Timeout occurred, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[wait_stream_speech::react] Timeout occurred, transitioning to fault_state");
     });
   }
 
@@ -659,22 +645,21 @@ struct stream_speech_state final : robot {
   auto react(const stream_speech_success_event& e) -> void override {
     transit<wait_stream_response_state>([&e]() -> void {
       // Action function
-      std::cout << "[stream_speech::react] Speech stream successful, transitioning to wait_stream_response_state"
-                << std::endl;
+      LOG_INFO(logger, "[stream_speech::react] Speech stream successful, transitioning to wait_stream_response_state");
     });
   }
 
   auto react(const stream_speech_failure_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[stream_speech::react] Speech stream failed, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[stream_speech::react] Speech stream failed, transitioning to fault_state");
     });
   }
 
   auto react(const timeout_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[stream_speech::react] Timeout occurred, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[stream_speech::react] Timeout occurred, transitioning to fault_state");
     });
   }
 
@@ -686,9 +671,7 @@ struct wait_stream_response_state final : robot {
     transit<stream_response_state>(
         [&e]() -> void {
           // Action function
-          std::cout << "[wait_stream_response::react] Server ready for response stream, transitioning to "
-                       "stream_response_state"
-                    << std::endl;
+          LOG_INFO(logger, "[wait_stream_response::react] Server ready for response stream, transitioning to stream_response_state");
         },
         [&e]() -> bool {
           // Condition function
@@ -698,7 +681,7 @@ struct wait_stream_response_state final : robot {
     transit<fault_state>(
         [&e]() -> void {
           // Action function
-          std::cout << "[wait_stream_response::react] Fault occurred, transitioning to fault_state" << std::endl;
+          LOG_ERROR(logger, "[wait_stream_response::react] Fault occurred, transitioning to fault_state");
         },
         [&e]() -> bool {
           // Condition function
@@ -709,7 +692,7 @@ struct wait_stream_response_state final : robot {
   auto react(const timeout_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[wait_stream_response::react] Timeout occurred, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[wait_stream_response::react] Timeout occurred, transitioning to fault_state");
     });
   }
 
@@ -720,29 +703,28 @@ struct stream_response_state final : robot {
   auto react(const stream_response_success_event& e) -> void override {
     transit<detect_speech_state>([&e]() -> void {
       // Action function
-      std::cout << "[stream_response::react] Stream response successful, transitioning to detect_speech_state"
-                << std::endl;
+      LOG_INFO(logger, "[stream_response::react] Stream response successful, transitioning to detect_speech_state");
     });
   }
 
   auto react(const stream_response_failure_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[stream_response::react] Stream response failed, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[stream_response::react] Stream response failed, transitioning to fault_state");
     });
   }
 
   auto react(const timeout_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[stream_response::react] Timeout occurred, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[stream_response::react] Timeout occurred, transitioning to fault_state");
     });
   }
 
   auto react(const playback_error_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      std::cout << "[stream_response::react] Playback error occurred, transitioning to fault_state" << std::endl;
+      LOG_ERROR(logger, "[stream_response::react] Playback error occurred, transitioning to fault_state");
     });
   }
 
@@ -751,10 +733,10 @@ struct stream_response_state final : robot {
 
 struct fault_state final : robot {
   auto entry() -> void override {
-    std::cout << "[fault::entry] Entering fault state, performing cleanup and logging" << std::endl;
+    LOG_WARNING(logger, "[fault::entry] Entering fault state, performing cleanup and logging");
     // Perform cleanup and logging here
     // After handling the fault, automatically transition back to idle state
-    transit<idle_state>([]() -> void { std::cout << "[fault::entry] Recovering to idle state" << std::endl; });
+    transit<idle_state>([]() -> void { LOG_WARNING(logger, "[fault::entry] Recovering to idle state"); });
   }
 
   auto get_state() const -> client_state override { return client_state::FAULT; }

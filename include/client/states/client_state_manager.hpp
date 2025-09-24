@@ -3,17 +3,30 @@
 #include <memory>
 
 #include "client_states.hpp"
+#include "quill/Backend.h"
+#include "quill/Frontend.h"
+#include "quill/sinks/ConsoleSink.h"
 
 // All calls to state transitions should be made through this manager
 class client_state_manager {
  private:
   std::shared_ptr<generic_camera> camera;
   std::shared_ptr<rtc_client> client;
+  std::shared_ptr<quill::Logger> logger;
 
-  client_state_manager() : camera{std::make_shared<laptop_camera>()}, client{std::make_shared<rtc_client>()} {
+  client_state_manager()
+      : camera{std::make_shared<laptop_camera>()},
+        client{std::make_shared<rtc_client>()},
+        logger{quill::Frontend::create_or_get_logger(
+            getenv("USER") ? getenv("USER") : "unknown_user", 
+            quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1"))} {
+    // logger configuration
+    quill::Backend::start();
+    logger->set_log_level(quill::LogLevel::TraceL3);
+
     robot::camera = camera;
     robot::client = client;
-    robot::start();
+    robot::logger = logger;
   }
 
   ~client_state_manager();
@@ -24,12 +37,5 @@ class client_state_manager {
     return instance;
   }
 
-  auto start() -> bool {
-    if (!camera->start()) robot::dispatch(camera_error_event{});
-    camera->set_on_human_detected([]() { robot::dispatch(human_presence_event{true}); });
-    camera->set_on_human_lost([]() { robot::dispatch(human_presence_event{false}); });
-
-    robot::dispatch(init_success_event{});
-    return true;
-  }
+  auto start() -> void { robot::start(); }
 };

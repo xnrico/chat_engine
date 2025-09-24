@@ -7,6 +7,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 
+set(LINK_SHARED_ZED ON)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
@@ -22,6 +24,7 @@ find_package(Threads REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(ZED REQUIRED)
 find_package(CUDA ${ZED_CUDA_VERSION} REQUIRED)
+find_package(quill REQUIRED)
 
 # Find libdatachannel
 find_library(DATACHANNEL_LIB datachannel REQUIRED)
@@ -30,6 +33,7 @@ if(NOT DATACHANNEL_LIB)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/utils/async_logger/include)
 include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${ZED_INCLUDE_DIRS})
 include_directories(${OPENCV_INCLUDE_DIRS})
@@ -43,8 +47,12 @@ file(GLOB_RECURSE SERVER_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/server/*.cpp")
 file(GLOB_RECURSE CLIENT_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/client/*.cpp")
 
 # PROTOBUF GENERATION
-add_library(chatproto ${PROTO_FILES})
+# Build chatproto as a shared library to speed up linking
+add_library(chatproto SHARED ${PROTO_FILES})
 set_target_properties(chatproto PROPERTIES
+    # Where to place the resulting libchatproto.so
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/proto"
+    # Keep archive dir set as well for platforms/generators that may still emit an import/archive
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/proto"
 )
 
@@ -91,7 +99,13 @@ endif()
 target_link_libraries(chat_server chatproto)
 target_link_libraries(chat_client chatproto)
 target_link_libraries(chat_client Threads::Threads)
+target_link_libraries(chat_client quill::quill)
 target_link_libraries(chat_client ${ZED_LIBS})
 target_link_libraries(chat_client ${OpenCV_LIBS})
 target_link_libraries(chat_client ${ZED_LIBS})
 target_link_libraries(chat_client ${DATACHANNEL_LIB})
+
+# Ensure executables can find libchatproto.so at runtime when running from the build tree
+set_target_properties(chat_client chat_server PROPERTIES
+    BUILD_RPATH "\$ORIGIN/../lib;\$ORIGIN/../lib/proto"
+)
