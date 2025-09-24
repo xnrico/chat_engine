@@ -18,7 +18,7 @@ class client_state_manager {
       : camera{std::make_shared<laptop_camera>()},
         client{std::make_shared<rtc_client>()},
         logger{quill::Frontend::create_or_get_logger(
-            getenv("USER") ? getenv("USER") : "unknown_user", 
+            getenv("USER") ? getenv("USER") : "unknown_user",
             quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1"))} {
     // logger configuration
     quill::Backend::start();
