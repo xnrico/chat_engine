@@ -21,13 +21,18 @@ rtc_client::rtc_client()
           quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_rtc"))},
       channel{grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials())},
       signaling_stub{signaling::signaling_service::NewStub(channel)},
-      chat_stub{chat::chat_service::NewStub(channel)} {}
+      chat_stub{chat::chat_service::NewStub(channel)},
+      on_stream_start{[]() {}},
+      on_stream_end{[]() {}},
+      on_stream_failed{[]() {}} {
+  // Constructor body (if needed)
+}
 
 rtc_client::~rtc_client() {
   // Clean up resources
 }
 
-auto generate_id(size_t n = 8) -> std::string {  // generate random id of length n
+auto rtc_client::generate_id(size_t n = 8) -> std::string {  // generate random id of length n
   static thread_local std::mt19937 rng(
       static_cast<unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
   static const std::string dictionary("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
@@ -38,33 +43,44 @@ auto generate_id(size_t n = 8) -> std::string {  // generate random id of length
   return id;
 }
 
-auto rtc_client::create_pc(const std::string &remote_id) -> std::shared_ptr<rtc::PeerConnection> {
+auto rtc_client::create_pc(const std::string &connection_id) -> std::shared_ptr<rtc::PeerConnection> {
   auto pc = std::make_shared<rtc::PeerConnection>(config);
 
   pc->onStateChange([this](rtc::PeerConnection::State state) {
     LOG_DEBUG(logger, "PeerConnection state changed: {}", static_cast<int>(state));
   });
 
-  pc->onGatheringStateChange([this, pc](rtc::PeerConnection::GatheringState state) {
-    LOG_DEBUG(logger, "Gathering state changed: {}", static_cast<int>(state));
+  pc->onGatheringStateChange([this, pc, connection_id](rtc::PeerConnection::GatheringState state) {
     if (state == rtc::PeerConnection::GatheringState::Complete) {
-      LOG_DEBUG(logger, "ICE Gathering complete");
       auto description = pc->localDescription();
-      LOG_DEBUG(logger, "Local description: {}", std::string{description.value()});
+      if (!description.has_value()) {
+        LOG_ERROR(logger, "No local description available at ICE gathering complete stage");
+        return;  // Cannot proceed without SDP
+      }
 
-      auto request = signaling::offer_request{};
+      auto request = std::make_shared<signaling::offer_request>();
       auto response = std::make_shared<signaling::offer_response>();
+      request->set_sdp(std::string{description.value()});
 
-      request.set_sdp(std::string{description.value()});
+      grpc::ClientContext context;  // Must be non-null; previous nullptr caused segfault
+      LOG_DEBUG(logger, "Sending offer to signaling server");
+      auto status = signaling_stub->offer(&context, *request, response.get());
 
-      LOG_DEBUG(logger, "Sent offer to signaling server");
-      auto ret = signaling_stub->offer(nullptr, std::move(request), response.get());
-
-      if (ret.ok()) {
+      if (status.ok()) {
         LOG_DEBUG(logger, "Received response from signaling server: {}", response->sdp());
-        pc->setRemoteDescription(response->sdp());
+        try {
+          pc->setRemoteDescription(response->sdp());
+
+          on_stream_start();
+        } catch (const std::exception &e) {
+          LOG_ERROR(logger, "Failed to set remote description: {}", e.what());
+          close_pc(connection_id);
+          on_stream_failed();
+        }
       } else {
-        LOG_ERROR(logger, "Failed to receive response from signaling server");
+        LOG_ERROR(logger, "Error {}, {}", static_cast<int>(status.error_code()), status.error_message());
+        close_pc(connection_id);
+        on_stream_failed();
       }
     }
   });
@@ -89,9 +105,7 @@ auto rtc_client::create_pc(const std::string &remote_id) -> std::shared_ptr<rtc:
 
   pc->setLocalDescription();
 
-  // std::atomic_bool running{true};
-
-  peer_connections.emplace(remote_id, pc);
+  peer_connections.emplace(connection_id, connection_info{pc, sock, true});
   return pc;
 }
 
@@ -108,4 +122,35 @@ auto rtc_client::stream_media(int sock) -> void {
   //   }
   // }
   // close(sock);
+}
+
+auto rtc_client::start_camera_stream() -> void {
+  local_id = generate_id(8);
+  auto pc = create_pc(local_id);
+
+  LOG_INFO(logger, "Created PeerConnection with local ID: {}", local_id);
+}
+
+auto rtc_client::set_on_stream_start(std::function<void()> &&callback) noexcept -> void {
+  on_stream_start = std::move(callback);
+}
+
+auto rtc_client::set_on_stream_end(std::function<void()> &&callback) noexcept -> void {
+  on_stream_end = std::move(callback);
+}
+
+auto rtc_client::set_on_stream_failed(std::function<void()> &&callback) noexcept -> void {
+  on_stream_failed = std::move(callback);
+}
+
+auto rtc_client::close_pc(const std::string &remote_id) -> void {
+  auto it = peer_connections.find(remote_id);
+  if (it != peer_connections.end()) {
+    auto &[id, info] = *it;
+    if (info.pc) {
+      close(info.socket);
+      info.active = false;
+      LOG_INFO(logger, "Closed PeerConnection with ID: {}", id);
+    }
+  }
 }

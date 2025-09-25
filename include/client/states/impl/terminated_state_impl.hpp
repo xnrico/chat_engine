@@ -11,6 +11,6 @@
 //=============================================================================
 
 struct terminated_state final : robot {
+  auto entry() -> void override { LOG_INFO(logger, "[{}::entry] Entering terminated state", to_string(get_state())); }
   auto get_state() const -> client_state override { return client_state::TERMINATED; }
-  auto entry() -> void override { LOG_INFO(logger, "[terminated::entry] Entering terminated state"); }
 };

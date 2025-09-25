@@ -30,11 +30,11 @@ class generic_camera : public base_camera {
   virtual auto start() -> bool;
   virtual auto stop() -> void;
 
-  virtual auto set_on_human_detected(std::function<void()> callback) noexcept -> void {
+  virtual auto set_on_human_detected(std::function<void()>&& callback) noexcept -> void {
     on_human_detected = std::move(callback);
   }
 
-  virtual auto set_on_human_lost(std::function<void()> callback) noexcept -> void {
+  virtual auto set_on_human_lost(std::function<void()>&& callback) noexcept -> void {
     on_human_lost = std::move(callback);
   }
 };

@@ -13,9 +13,9 @@
 struct idle_state final : robot {
   auto react(const human_presence_event& e) -> void override {
     transit<wait_stream_camera_state>(
-        [&e]() -> void {
+        [this, &e]() -> void {
           // Action function
-          LOG_INFO(logger, "[idle::react] Human present, transitioning to active state");
+          LOG_INFO(logger, "[{}::react] Human present, transitioning to active state", to_string(get_state()));
         },
         [&e]() -> bool {
           // Condition function

@@ -21,7 +21,7 @@ auto laptop_camera::process_objects() -> void {
   static auto dist = std::uniform_int_distribution<int>{0, 1};
 
   // Simulate human detection
-  if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - last_time) > 1s) {
+  if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - last_time) > 1000ms) {
     last_time = std::chrono::steady_clock::now();
     human_present = dist(rng);
   }

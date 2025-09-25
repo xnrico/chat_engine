@@ -12,30 +12,32 @@
 
 struct wait_stream_camera_state final : robot {
  private:
-  std::thread work_thread;
-
   auto process() -> void {}
 
  public:
-  auto entry() -> void override {
-    work_thread = std::thread([this]() { this->process(); });
-  }
-
-  auto exit() -> void override {
-    if (work_thread.joinable()) {
-      work_thread.join();
-    }
-  }
+  auto entry() -> void override { client->start_camera_stream(); }
 
   auto react(const server_ready_event& e) -> void override {
     transit<stream_camera_state>(
-        [&e]() -> void {
+        [this, &e]() -> void {
           // Action function
-          LOG_INFO(logger, "[wait_stream_camera::react] Server ready for camera stream, transitioning to stream_camera_state");
+          LOG_INFO(logger, "[{}::react] Server ready for camera stream, transitioning to stream_camera_state",
+                   to_string(get_state()));
         },
         [&e]() -> bool {
           // Condition function
           return e.ready;
+        });
+
+    transit<idle_state>(
+        [this, &e]() -> void {
+          // Action function
+          LOG_ERROR(logger, "[{}::react] Server not ready for camera stream, transitioning to idle_state",
+                    to_string(get_state()));
+        },
+        [&e]() -> bool {
+          // Condition function
+          return !e.ready;
         });
   }
 
