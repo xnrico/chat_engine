@@ -97,6 +97,10 @@ endif()
 
 
 target_link_libraries(chat_server chatproto)
+target_link_libraries(chat_server ${DATACHANNEL_LIB})
+target_link_libraries(chat_server Threads::Threads)
+target_link_libraries(chat_server quill::quill)
+
 target_link_libraries(chat_client chatproto)
 target_link_libraries(chat_client Threads::Threads)
 target_link_libraries(chat_client quill::quill)

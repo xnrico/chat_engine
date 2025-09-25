@@ -36,6 +36,7 @@ class rtc_client final : public std::enable_shared_from_this<rtc_client> {
   auto create_pc(const std::string& remote_id) -> std::shared_ptr<rtc::PeerConnection>;
   auto stream_media(int sock) -> void;
   auto close_pc(const std::string& remote_id) -> void;
+  auto cleanup_pc() -> void;
 
  public:
   rtc_client();

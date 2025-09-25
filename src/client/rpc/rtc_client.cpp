@@ -29,7 +29,18 @@ rtc_client::rtc_client()
 }
 
 rtc_client::~rtc_client() {
-  // Clean up resources
+  // Clean up resources: close all active peer connections gracefully
+  for (auto &[id, info] : peer_connections) {
+    if (info.pc) {
+      try {
+        info.pc->close();
+      } catch (...) {
+      }
+    }
+    if (info.socket > 0) {
+      ::close(info.socket);
+    }
+  }
 }
 
 auto rtc_client::generate_id(size_t n = 8) -> std::string {  // generate random id of length n
@@ -44,6 +55,8 @@ auto rtc_client::generate_id(size_t n = 8) -> std::string {  // generate random 
 }
 
 auto rtc_client::create_pc(const std::string &connection_id) -> std::shared_ptr<rtc::PeerConnection> {
+  // clean up unused peer connections
+  cleanup_pc();
   auto pc = std::make_shared<rtc::PeerConnection>(config);
 
   pc->onStateChange([this](rtc::PeerConnection::State state) {
@@ -151,6 +164,14 @@ auto rtc_client::close_pc(const std::string &remote_id) -> void {
       close(info.socket);
       info.active = false;
       LOG_INFO(logger, "Closed PeerConnection with ID: {}", id);
+    }
+  }
+}
+
+auto rtc_client::cleanup_pc() -> void {
+  for (auto [cid, conn_info] : peer_connections) {
+    if (!conn_info.active) {
+      conn_info.pc->close();
     }
   }
 }
