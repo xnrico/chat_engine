@@ -10,15 +10,15 @@
 // STATE DEFINITIONS
 //=============================================================================
 
-struct init_state final : robot {
+struct init_state final : bot {
   auto entry() -> void override {
     LOG_INFO(logger, "[{}::entry] Entering init state, performing initialization", to_string(get_state()));
-    if (!camera->start()) robot::dispatch(camera_error_event{});
-    camera->set_on_human_detected([]() { robot::dispatch(human_presence_event{true}); });
-    camera->set_on_human_lost([]() { robot::dispatch(human_presence_event{false}); });
-    client->set_on_stream_start([]() { robot::dispatch(server_ready_event{true}); });
-    client->set_on_stream_failed([]() { robot::dispatch(server_ready_event{false}); });
-    robot::dispatch(init_success_event{});
+    if (!camera->start()) bot::dispatch(camera_error_event{});
+    camera->set_on_human_detected([]() { bot::dispatch(human_presence_event{true}); });
+    camera->set_on_human_lost([]() { bot::dispatch(human_presence_event{false}); });
+    // client->set_on_stream_start([]() { bot::dispatch(server_ready_event{true}); });
+    // client->set_on_stream_failed([]() { bot::dispatch(server_ready_event{false}); });
+    bot::dispatch(init_success_event{});
   }
 
   auto react(const init_success_event& e) -> void override {

@@ -1,0 +1,33 @@
+// server.proto
+syntax = "proto3";
+
+package server;
+
+// The main service for robot-server communication
+// server will be able to handle these rpc calls
+
+service server_service {
+	// robot tells server to initiate stream
+  // server returns status and the unique request id
+  rpc init_camera_stream(init_camera_offer) returns (init_camera_answer);
+}
+
+message generic_message {
+  string session_id = 1;
+  uint32 data = 2;
+}
+
+message init_camera_offer {
+	string session_id = 1;
+	string sdp = 2;
+}
+
+message init_camera_answer {
+	string session_id = 1;
+	string sdp = 2;
+}
+
+message response_message {
+  string session_id = 1;
+  bool success = 2;
+}

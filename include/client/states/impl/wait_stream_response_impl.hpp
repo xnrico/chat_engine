@@ -10,7 +10,7 @@
 // STATE DEFINITIONS
 //=============================================================================
 
-struct wait_stream_response_state final : robot {
+struct wait_stream_response_state final : bot {
   auto react(const server_ready_event& e) -> void override {
     transit<stream_response_state>(
         [&e]() -> void {

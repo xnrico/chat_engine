@@ -10,12 +10,13 @@
 // STATE DEFINITIONS
 //=============================================================================
 
-struct wait_stream_speech_state final : robot {
+struct wait_stream_speech_state final : bot {
   auto react(const server_ready_event& e) -> void override {
     transit<stream_speech_state>(
         [&e]() -> void {
           // Action function
-          LOG_INFO(logger, "[wait_stream_speech::react] Server ready for speech stream, transitioning to stream_speech_state");
+          LOG_INFO(logger,
+                   "[wait_stream_speech::react] Server ready for speech stream, transitioning to stream_speech_state");
         },
         [&e]() -> bool {
           // Condition function

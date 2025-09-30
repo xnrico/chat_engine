@@ -1,41 +1,16 @@
 #pragma once
 
+#include <chrono>
 #include <random>
-#include <sstream>
 #include <string>
 
-// Function to generate a string of unique ID (UUID)
-std::string generate_uuid() {
-  static std::random_device rd;
-  static std::mt19937 gen(rd());
-  std::uniform_int_distribution<> dis(0, 15);
-  std::uniform_int_distribution<> dis2(8, 11);
-
-  std::stringstream ss;
-  int i;
-
-  ss << std::hex;
-
-  for (i = 0; i < 8; i++) {
-    ss << dis(gen);
-  }
-  ss << "-";
-  for (i = 0; i < 4; i++) {
-    ss << dis(gen);
-  }
-  ss << "-4";
-  for (i = 0; i < 3; i++) {
-    ss << dis(gen);
-  }
-  ss << "-";
-  ss << dis2(gen);
-  for (i = 0; i < 3; i++) {
-    ss << dis(gen);
-  }
-  ss << "-";
-  for (i = 0; i < 12; i++) {
-    ss << dis(gen);
-  }
-  
-  return ss.str();
+// Function to generate a string of unique session ID
+auto generate_id() -> std::string {
+  static thread_local std::mt19937 rng(
+      static_cast<unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+  static const std::string dict = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  std::uniform_int_distribution<int> dist(0, static_cast<int>(dict.size() - 1));
+  std::string out(8, '0');
+  for (auto& c : out) c = dict[dist(rng)];
+  return out;
 }

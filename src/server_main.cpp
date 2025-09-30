@@ -1,17 +1,14 @@
 #include <iostream>
 #include <memory>
-#include <server/chat_server.hpp>
-#include <server/signaling_server.hpp>
+#include <server/server_rpc_manager.hpp>
 #include <tinyfsm/tinyfsm.hpp>
 
 int main(int argc, char* argv[]) {
-  auto chat = chat_server{};
-  auto signaling = signaling_server{};
+  auto server = server_rpc_manager{};
 
   grpc::ServerBuilder builder;
-  builder.AddListeningPort("0.0.0.0:50051", grpc::InsecureServerCredentials());
-  builder.RegisterService(&chat);
-  builder.RegisterService(&signaling);
+  builder.AddListeningPort("0.0.0.0:6001", grpc::InsecureServerCredentials());
+  builder.RegisterService(&server);
   std::unique_ptr<grpc::Server> grpc_server = builder.BuildAndStart();
 
   std::cout << "Hello, Chat Engine!" << std::endl;

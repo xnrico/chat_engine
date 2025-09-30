@@ -10,7 +10,7 @@
 // STATE DEFINITIONS
 //=============================================================================
 
-struct detect_speech_state final : robot {
+struct detect_speech_state final : bot {
   auto react(const user_speech_detected_event& e) -> void override {
     transit<wait_stream_speech_state>(
         [&e]() -> void {

@@ -10,12 +10,12 @@
 // STATE DEFINITIONS
 //=============================================================================
 
-struct wait_stream_camera_state final : robot {
+struct wait_stream_camera_state final : bot {
  private:
   auto process() -> void {}
 
  public:
-  auto entry() -> void override { client->start_camera_stream(); }
+  auto entry() -> void override { rpc_manager->init_camera_stream(); }
 
   auto react(const server_ready_event& e) -> void override {
     transit<stream_camera_state>(

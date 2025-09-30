@@ -10,7 +10,7 @@
 // STATE DEFINITIONS
 //=============================================================================
 
-struct stream_camera_state final : robot {
+struct stream_camera_state final : bot {
   auto react(const facial_recognition_response_event& e) -> void override {
     transit<greeting_state>(
         [&e]() -> void {

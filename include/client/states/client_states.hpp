@@ -261,7 +261,7 @@ struct stream_response_failure_event;
 // STATE MACHINE DECLARATIONS
 //=============================================================================
 
-struct robot;
+struct bot;
 
 //=============================================================================
 // STATE MACHINE DEFINITIONS

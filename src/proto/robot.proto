@@ -1,0 +1,36 @@
+// robot.proto
+syntax = "proto3";
+
+package robot;
+
+// The main service for robot-server communication
+// robot will be able to handle these rpc calls
+
+service robot_service {
+  // server tells robot to stop stream with the previously supplied request id
+  // robot returns status and the request id
+  rpc stop_camera_stream(generic_message) returns (response_message);
+
+  // server sends an offer SDP, robot responds with an answer SDP
+	rpc offer(offer_request) returns (offer_response);
+}
+
+message generic_message {
+  string session_id = 1;
+  uint32 data = 2;
+}
+
+message response_message {
+  string session_id = 1;
+  bool success = 2;
+}
+
+message offer_request {
+	string session_id = 1;
+	string sdp = 2;
+}
+
+message offer_response {
+	string session_id = 1;
+	string sdp = 2;
+}

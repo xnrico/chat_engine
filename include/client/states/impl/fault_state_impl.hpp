@@ -10,7 +10,7 @@
 // STATE DEFINITIONS
 //=============================================================================
 
-struct fault_state final : robot {
+struct fault_state final : bot {
   auto entry() -> void override {
     LOG_WARNING(logger, "[fault::entry] Entering fault state, performing cleanup and logging");
     // Perform cleanup and logging here

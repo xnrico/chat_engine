@@ -10,7 +10,7 @@
 // STATE DEFINITIONS
 //=============================================================================
 
-struct idle_state final : robot {
+struct idle_state final : bot {
   auto react(const human_presence_event& e) -> void override {
     transit<wait_stream_camera_state>(
         [this, &e]() -> void {
