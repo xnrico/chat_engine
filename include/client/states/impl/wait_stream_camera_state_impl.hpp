@@ -15,7 +15,31 @@ struct wait_stream_camera_state final : bot {
   auto process() -> void {}
 
  public:
-  auto entry() -> void override { rpc_manager->init_camera_stream(); }
+  auto entry() -> void override {
+    rpc_manager->init_camera_stream(
+        [this]() -> void {
+          // on_start callback
+          LOG_INFO(logger, "Camera stream started successfully", to_string(get_state()));
+          bot::dispatch(server_ready_event{true});
+        },
+        [this]() -> void {
+          // on_failed callback
+          LOG_ERROR(logger, "Camera stream failed to start due to server error", to_string(get_state()));
+          bot::dispatch(server_ready_event{false});
+        },
+        [this]() -> void {
+          LOG_ERROR(logger, "Camera stream failed to start due to camera error", to_string(get_state()));
+          bot::dispatch(camera_error_event{});
+        },
+        [this]() -> void {
+          LOG_ERROR(logger, "Camera stream failed to start due to timeout", to_string(get_state()));
+          bot::dispatch(timeout_event{});
+        },
+        [this]() -> void {
+          LOG_ERROR(logger, "Camera stream ended successfully", to_string(get_state()));
+          bot::dispatch(facial_recognition_response_event{true});
+        });
+  }
 
   auto react(const server_ready_event& e) -> void override {
     transit<stream_camera_state>(
@@ -42,5 +66,6 @@ struct wait_stream_camera_state final : bot {
   }
 
   auto react(const timeout_event& e) -> void override { transit<fault_state>(); }
+  auto react(const camera_error_event& e) -> void override { transit<fault_state>(); }
   auto get_state() const -> client_state override { return client_state::WAIT_STREAM_CAMERA; }
 };

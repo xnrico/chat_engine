@@ -39,5 +39,7 @@ class robot_rpc_manager final : public robot::robot_service::Service {
   grpc::Status offer(grpc::ServerContext* context, const robot::offer_request* request,
                      robot::offer_response* response) override;
 
-  void init_camera_stream();
+  void init_camera_stream(std::function<void()> on_start, std::function<void()> on_server_error,
+                          std::function<void()> on_camera_error, std::function<void()> on_timeout,
+                          std::function<void()> on_end);
 };

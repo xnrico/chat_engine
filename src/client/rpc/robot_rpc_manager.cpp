@@ -40,9 +40,19 @@ grpc::Status robot_rpc_manager::offer(grpc::ServerContext* context, const robot:
   return grpc::Status::OK;
 }
 
-void robot_rpc_manager::init_camera_stream() {
+void robot_rpc_manager::init_camera_stream(
+    std::function<void()> on_start = [] {}, std::function<void()> on_server_error = [] {},
+    std::function<void()> on_camera_error = [] {}, std::function<void()> on_timeout = [] {},
+    std::function<void()> on_end = [] {}) {
   // Implementation of the method
   auto sid = generate_id();
   sessions.emplace(sid, std::make_shared<camera_streamer>(sid, 6000, stub));
-  std::dynamic_pointer_cast<camera_streamer>(sessions[sid])->create_stream();
+
+  auto streamer = std::dynamic_pointer_cast<camera_streamer>(sessions[sid]);
+  streamer->set_on_start(on_start);
+  streamer->set_on_server_error(on_server_error);
+  streamer->set_on_camera_error(on_camera_error);
+  streamer->set_on_timeout(on_timeout);
+  streamer->set_on_end(on_end);
+  streamer->create_stream();
 }

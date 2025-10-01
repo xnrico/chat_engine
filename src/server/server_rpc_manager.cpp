@@ -62,10 +62,22 @@ grpc::Status server_rpc_manager::init_camera_stream(grpc::ServerContext* context
       }
     }
   });
-  pc->onTrack([this](std::shared_ptr<rtc::Track> track) {
-    LOG_INFO(logger, "New track received: available_amount={}", track->availableAmount());
-    track->receive();
-  });
+
+  rtc::Description::Video media("video", rtc::Description::Direction::RecvOnly);
+  media.addH264Codec(96);
+  // media.setBitrate(3000);  // Request 3Mbps (Browsers do not encode more than 2.5MBps from a webcam)
+
+  auto track = pc->addTrack(media);
+
+  auto session = std::make_shared<rtc::RtcpReceivingSession>();
+  track->setMediaHandler(session);
+  track->onMessage(
+      [this, session](rtc::binary message) {
+        // This is an RTP packet
+        LOG_DEBUG(logger, "Received RTP packet of size {} on session", message.size());
+      },
+      nullptr);
+  track->onOpen([this] { LOG_DEBUG(logger, "track opened"); });
 
   // Execution steps:
   // 1. Set remote description (offer from client)
