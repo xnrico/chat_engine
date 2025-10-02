@@ -1,11 +1,6 @@
 #pragma once
 
 #include <grpcpp/grpcpp.h>
-#include <quill/Backend.h>
-#include <quill/Frontend.h>
-#include <quill/LogMacros.h>
-#include <quill/Logger.h>
-#include <quill/sinks/ConsoleSink.h>
 
 #include <atomic>
 #include <chrono>
@@ -18,6 +13,7 @@
 #include <vector>
 
 #include "base_session.hpp"
+#include "common/chat_utils.hpp"
 #include "grpc/robot.grpc.pb.h"
 #include "grpc/server.grpc.pb.h"
 
@@ -31,7 +27,9 @@ class camera_streamer final : public base_session {
     std::string session_id;
     std::shared_ptr<rtc::Track> track;
     std::function<void(std::array<char, 2048>, size_t)> on_data;  // pass by value
+    std::function<void()> on_start;
     std::function<void()> on_camera_error;
+    std::function<void()> on_timeout;
 
     uplink() = default;
   };
@@ -39,10 +37,15 @@ class camera_streamer final : public base_session {
   struct capture {
     std::vector<uplink> uplinks;
     std::thread capture_thread;
+
+    std::condition_variable capture_cv;
+    std::mutex capture_mtx;
+
     int socket;
     std::atomic<bool> is_running;
+    std::atomic<bool> has_data;
 
-    capture() : socket{-1}, is_running{false} {}
+    capture() : socket{-1}, is_running{false}, has_data{false} {}
   };
 
  private:
@@ -57,7 +60,6 @@ class camera_streamer final : public base_session {
   rtc::Configuration config{};  // customize (STUN/TURN) as needed
   std::shared_ptr<rtc::PeerConnection> pc;
 
-  std::shared_ptr<quill::Logger> logger;
   int rtp_port;
 
   // Callbacks
@@ -74,36 +76,33 @@ class camera_streamer final : public base_session {
   camera_streamer() = delete;
 
   camera_streamer(const std::string &sid, int rtp_port, std::shared_ptr<server::server_service::Stub> stub)
-      : base_session{sid},
-        rtp_port{rtp_port},
-        stub{std::move(stub)},
-        logger{quill::Frontend::create_or_get_logger(
-            getenv("USER") ? getenv("USER") : "unknown_user",
-            quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_camera_streamer_" + session_id))} {
-    // Start logger
-    quill::Backend::start();
+      : base_session{sid}, rtp_port{rtp_port}, stub{std::move(stub)} {}
 
-    create_stream();
-  }
-
-  ~camera_streamer() override { remove_stream(); }
-
-  void remove_stream() {
-    // Linear search but should be ok since few uplinks are expected
-    captures[rtp_port].uplinks.erase(
-        std::remove_if(captures[rtp_port].uplinks.begin(), captures[rtp_port].uplinks.end(),
-                       [this](const uplink &u) { return u.session_id == session_id; }),
-        captures[rtp_port].uplinks.end());
-
+  ~camera_streamer() override {
     // Release resources if no more uplinks
     if (captures[rtp_port].uplinks.empty()) {
       captures[rtp_port].is_running.store(false);
       if (captures[rtp_port].capture_thread.joinable()) {
         captures[rtp_port].capture_thread.join();
       }
+
       close(captures[rtp_port].socket);
       captures.erase(rtp_port);
+      LOG_DEBUG(logger, "Camera stream on port {} destroyed", rtp_port);
     }
+  }
+
+  void remove_stream() {
+    // This only removes the uplink from the capture list and marks the session inactive
+    // The real cleanup is done in the destructor, which is called when the session is removed from the session manager
+    // Linear search but should be ok since few uplinks are expected
+    captures[rtp_port].uplinks.erase(
+        std::remove_if(captures[rtp_port].uplinks.begin(), captures[rtp_port].uplinks.end(),
+                       [this](const uplink &u) { return u.session_id == session_id; }),
+        captures[rtp_port].uplinks.end());
+
+    session_active.store(false);
+    LOG_DEBUG(logger, "Camera stream for session {} marked inactive", session_id);
   }
 
   void create_stream() {
@@ -153,8 +152,6 @@ class camera_streamer final : public base_session {
     pc->onStateChange([this, track](rtc::PeerConnection::State state) -> void {
       if (state == rtc::PeerConnection::State::Connected) {
         // Start streaming
-        on_start();
-
         auto link = uplink{.session_id = session_id,
                            .track = track,
                            .on_data =
@@ -163,19 +160,18 @@ class camera_streamer final : public base_session {
                                  rtp->setSsrc(SSRC);
                                  track->send(reinterpret_cast<const std::byte *>(buffer.data()), len);
                                },
-                           .on_camera_error = on_camera_error};
+                           .on_start = on_start,
+                           .on_camera_error = on_camera_error,
+                           .on_timeout = on_timeout};
         dispatch_uplink(link);
       } else if (state == rtc::PeerConnection::State::Disconnected) {
         // Error
         on_server_error();
       } else if (state == rtc::PeerConnection::State::Closed) {
         // Terminated by server (finished)
-        // on_end();
       }
     });
 
-    // uplink = pc->addTrack(*media);
-    // pc->createOffer();
     pc->setLocalDescription(rtc::Description::Type::Offer);
   }
 

@@ -65,7 +65,7 @@ grpc::Status server_rpc_manager::init_camera_stream(grpc::ServerContext* context
 
   rtc::Description::Video media("video", rtc::Description::Direction::RecvOnly);
   media.addH264Codec(96);
-  // media.setBitrate(3000);  // Request 3Mbps (Browsers do not encode more than 2.5MBps from a webcam)
+  media.setBitrate(3000);  // Request 3Mbps (Browsers do not encode more than 2.5MBps from a webcam)
 
   auto track = pc->addTrack(media);
 

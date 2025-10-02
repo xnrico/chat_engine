@@ -11,24 +11,28 @@
 //=============================================================================
 
 struct wait_stream_camera_state final : bot {
- private:
-  auto process() -> void {}
-
- public:
   auto entry() -> void override {
-    rpc_manager->init_camera_stream(
+    current_sid = rpc_manager->init_camera_stream(
         [this]() -> void {
           // on_start callback
-          LOG_INFO(logger, "Camera stream started successfully", to_string(get_state()));
+          LOG_INFO(logger, "Camera stream started successfully: {}", to_string(get_state()));
           bot::dispatch(server_ready_event{true});
         },
         [this]() -> void {
           // on_failed callback
-          LOG_ERROR(logger, "Camera stream failed to start due to server error", to_string(get_state()));
+          LOG_ERROR(logger, "Camera stream failed to start due to server error: {}", to_string(get_state()));
+          if (!current_sid.empty()) {
+            rpc_manager->stop_camera_stream(current_sid);
+            current_sid.clear();
+          }
           bot::dispatch(server_ready_event{false});
         },
         [this]() -> void {
-          LOG_ERROR(logger, "Camera stream failed to start due to camera error", to_string(get_state()));
+          LOG_ERROR(logger, "Camera stream failed to start due to camera error: {}", to_string(get_state()));
+          if (!current_sid.empty()) {
+            rpc_manager->stop_camera_stream(current_sid);
+            current_sid.clear();
+          }
           bot::dispatch(camera_error_event{});
         },
         [this]() -> void {

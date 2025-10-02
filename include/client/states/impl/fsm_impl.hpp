@@ -1,20 +1,23 @@
 #pragma once
 
-#include <quill/LogMacros.h>
-#include <quill/Logger.h>
-
 #include <client/states/client_states.hpp>
 #include <tinyfsm/tinyfsm.hpp>
+
+#include "common/chat_utils.hpp"
 
 //=============================================================================
 // STATE MACHINE DECLARATIONS
 //=============================================================================
 
 struct bot : public tinyfsm::MealyMachine<bot> {
+ public:
   static std::shared_ptr<generic_camera> camera;
   static std::shared_ptr<robot_rpc_manager> rpc_manager;
-  static std::shared_ptr<quill::Logger> logger;
 
+ protected:
+  std::string current_sid;
+
+ public:
   virtual void react(const reset_event&);
   virtual void react(const terminate_event&);
   virtual void react(const generic_event&);

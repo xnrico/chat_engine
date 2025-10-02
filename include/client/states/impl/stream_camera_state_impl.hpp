@@ -40,5 +40,12 @@ struct stream_camera_state final : bot {
     });
   }
 
+  auto react(const camera_error_event& e) -> void override {
+    transit<fault_state>([&e]() -> void {
+      // Action function
+      LOG_ERROR(logger, "[stream_camera::react] Camera error occurred, transitioning to fault_state");
+    });
+  }
+
   auto get_state() const -> client_state override { return client_state::STREAM_CAMERA; }
 };
