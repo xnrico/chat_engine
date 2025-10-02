@@ -8,12 +8,11 @@
 #include <rtc/rtc.hpp>
 #include <stdexcept>
 #include <thread>
-#include <tuple>
 #include <unordered_set>
 #include <vector>
 
-#include "base_session.hpp"
 #include "common/chat_utils.hpp"
+#include "common/sessions/base_session.hpp"
 #include "grpc/robot.grpc.pb.h"
 #include "grpc/server.grpc.pb.h"
 
@@ -76,7 +75,7 @@ class camera_streamer final : public base_session {
   camera_streamer() = delete;
 
   camera_streamer(const std::string &sid, int rtp_port, std::shared_ptr<server::server_service::Stub> stub)
-      : base_session{sid}, rtp_port{rtp_port}, stub{std::move(stub)} {}
+      : base_session{sid}, rtp_port{rtp_port}, stub{stub} {}
 
   ~camera_streamer() override {
     // Release resources if no more uplinks

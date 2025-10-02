@@ -47,11 +47,9 @@ std::string robot_rpc_manager::init_camera_stream(
     std::function<void()> on_camera_error = [] {}, std::function<void()> on_timeout = [] {},
     std::function<void()> on_end = [] {}) {
   // Implementation of the method
-  cleanup_sessions();
-
   auto sid = generate_id();
   std::lock_guard<std::mutex> lock(mtx);
-  sessions.emplace(sid, std::make_shared<camera_streamer>(sid, 6000, stub));
+  sessions.try_emplace(sid, std::make_shared<camera_streamer>(sid, 6000, stub));
 
   auto streamer = std::dynamic_pointer_cast<camera_streamer>(sessions[sid]);
   streamer->set_on_start(on_start);
@@ -79,6 +77,7 @@ void robot_rpc_manager::cleanup_sessions() {
   for (auto it = sessions.begin(); it != sessions.end();) {
     // Check if the session is inactive
     if (!it->second->is_active()) {
+      LOG_INFO(logger, "Cleaning up inactive session: {}", it->first);
       it = sessions.erase(it);
     } else {
       // If the element is kept, move to the next element.

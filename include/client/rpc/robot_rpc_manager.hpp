@@ -7,8 +7,8 @@
 #include <mutex>
 #include <rtc/rtc.hpp>
 
-#include "client/sessions/base_session.hpp"
 #include "common/chat_type.hpp"
+#include "common/sessions/base_session.hpp"
 #include "grpc/robot.grpc.pb.h"
 #include "grpc/server.grpc.pb.h"
 

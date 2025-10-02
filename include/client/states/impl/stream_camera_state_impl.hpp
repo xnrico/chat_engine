@@ -15,7 +15,8 @@ struct stream_camera_state final : bot {
     transit<greeting_state>(
         [&e]() -> void {
           // Action function
-          LOG_INFO(logger, "[stream_camera::react] Facial recognition indicates not greeted, transitioning to greeting_state");
+          LOG_INFO(logger,
+                   "[stream_camera::react] Facial recognition indicates not greeted, transitioning to greeting_state");
         },
         [&e]() -> bool {
           // Condition function
@@ -25,7 +26,9 @@ struct stream_camera_state final : bot {
     transit<wait_stream_speech_state>(
         [&e]() -> void {
           // Action function
-          LOG_INFO(logger, "[stream_camera::react] Facial recognition indicates greeted, transitioning to wait_stream_speech_state");
+          LOG_INFO(
+              logger,
+              "[stream_camera::react] Facial recognition indicates greeted, transitioning to wait_stream_speech_state");
         },
         [&e]() -> bool {
           // Condition function

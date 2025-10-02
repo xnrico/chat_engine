@@ -1,9 +1,18 @@
 #include <iostream>
 #include <memory>
-#include <server/server_rpc_manager.hpp>
 #include <tinyfsm/tinyfsm.hpp>
 
+#include "common/chat_utils.hpp"
+#include "server/rpc/server_rpc_manager.hpp"
+
 int main(int argc, char* argv[]) {
+  logger = std::shared_ptr<quill::Logger>{
+      quill::Frontend::create_or_get_logger(getenv("USER") ? getenv("USER") : "unknown_user",
+                                            quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_server"))};
+
+  logger->set_log_level(quill::LogLevel::TraceL3);
+  quill::Backend::start();
+
   auto server = server_rpc_manager{};
 
   grpc::ServerBuilder builder;
