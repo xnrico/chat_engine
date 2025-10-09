@@ -30,6 +30,8 @@ class camera_streamer final : public base_session {
     std::function<void()> on_camera_error;
     std::function<void()> on_timeout;
 
+    mutable std::chrono::steady_clock::time_point link_start;  // used to timeout if no response from server
+
     uplink() = default;
   };
 
@@ -51,7 +53,7 @@ class camera_streamer final : public base_session {
   constexpr static size_t BUFFER_SIZE = 212992;  // max UDP packet size for RTP over IPv4
   constexpr static size_t SSRC = 42;             // arbitrary SSRC for the video track
   constexpr static size_t PAYLOAD_TYPE = 96;     // must match the payload type of the external h264 RTP stream
-  constexpr static size_t TIMEOUT = 3;           // timeout to stop waiting for uplink to open
+  constexpr static size_t TIMEOUT = 5;           // timeout to stop waiting for uplink to open
   static std::unordered_map<int, capture> captures;
 
  private:
@@ -87,7 +89,6 @@ class camera_streamer final : public base_session {
 
       close(captures[rtp_port].socket);
       captures.erase(rtp_port);
-      LOG_DEBUG(logger, "Camera stream on port {} destroyed", rtp_port);
     }
   }
 
@@ -101,7 +102,6 @@ class camera_streamer final : public base_session {
         captures[rtp_port].uplinks.end());
 
     session_active.store(false);
-    LOG_DEBUG(logger, "Camera stream for session {} marked inactive", session_id);
   }
 
   void create_stream() {
@@ -125,7 +125,7 @@ class camera_streamer final : public base_session {
         }
 
         // Send the offer to the signaling server and wait for the answer
-        grpc::ClientContext context;  // Must be non-null
+        auto context = grpc::ClientContext{};  // Must be non-null
         auto request = std::make_shared<server::init_camera_offer>();
         auto response = std::make_shared<server::init_camera_answer>();
 

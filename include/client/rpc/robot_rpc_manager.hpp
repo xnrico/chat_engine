@@ -40,5 +40,5 @@ class robot_rpc_manager final : public robot::robot_service::Service {
                                  std::function<void()> on_camera_error, std::function<void()> on_timeout,
                                  std::function<void()> on_end);
 
-  void stop_camera_stream(const std::string& session_id);
+  void stop_camera_session(const std::string& session_id);
 };

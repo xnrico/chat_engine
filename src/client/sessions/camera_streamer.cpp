@@ -42,8 +42,6 @@ void camera_streamer::capture_work(int port) {
   captures[port].has_data.store(false);
   int len{};
 
-  LOG_DEBUG(logger, "Waiting for RTP packets on port {}", port);
-
   while (captures[port].is_running.load()) {
     // Try to read
     len = recv(sock, buffer.data(), buffer.size(), 0);  // returns -1 when no data
@@ -51,14 +49,10 @@ void camera_streamer::capture_work(int port) {
     if (len < 0 || len < sizeof(rtc::RtpHeader)) {
       captures[port].has_data.store(false);
       captures[port].capture_cv.notify_all();
-      LOG_DEBUG(logger, "Invalid RTP packet received on port {}, Number of links {}", port,
-                captures[port].uplinks.size());
       for (const auto& link : captures[port].uplinks) link.on_camera_error();
-      std::this_thread::sleep_for(10ms);  // Wait before retrying
-      continue;                           // Ignore invalid packets
+      std::this_thread::sleep_for(250ms);  // Wait before retrying
+      continue;                            // Ignore invalid packets
     }
-
-    LOG_DEBUG(logger, "Received RTP packet of size {} on port {}", len, port);
 
     // Process RTP packet if needed
     // Dispatch to all uplinks with synchronization barrier
@@ -69,7 +63,11 @@ void camera_streamer::capture_work(int port) {
 
     // Asynchronously send to all uplinks
     for (const auto& link : captures[port].uplinks) {
-      futures.emplace_back(std::async(std::launch::async, [&link, &buffer, len]() { link.on_data(buffer, len); }));
+      if (std::chrono::steady_clock::now() - link.link_start > std::chrono::seconds(TIMEOUT)) {
+        link.on_timeout();
+      } else {
+        futures.emplace_back(std::async(std::launch::async, [&link, &buffer, len]() { link.on_data(buffer, len); }));
+      }
     }
 
     // Wait for all threads to complete before updating the buffer again
@@ -80,8 +78,6 @@ void camera_streamer::capture_work(int port) {
 
   captures[port].has_data.store(false);
   captures[port].capture_cv.notify_all();
-
-  LOG_DEBUG(logger, "Stopping RTP capture on port {}", port);
 }
 
 void camera_streamer::dispatch_uplink(const uplink& link) {
@@ -103,6 +99,7 @@ void camera_streamer::dispatch_uplink(const uplink& link) {
 
   // Add uplink to existing capture
   if (captures[rtp_port].has_data.load()) {
+    link.link_start = std::chrono::steady_clock::now();
     captures[rtp_port].uplinks.push_back(link);
     link.on_start();  // Notify uplink that streaming has started
   } else {

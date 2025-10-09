@@ -32,4 +32,6 @@ class server_rpc_manager final : public server::server_service::Service {
 
   grpc::Status init_camera_stream(grpc::ServerContext* context, const server::init_camera_offer* request,
                                   server::init_camera_answer* response) override;
+
+  void stop_camera_stream(const std::string& session_id);
 };

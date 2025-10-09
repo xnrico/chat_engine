@@ -72,3 +72,11 @@ void server_rpc_manager::cleanup_sessions() {
     }
   }
 }
+
+void server_rpc_manager::stop_camera_stream(const std::string& session_id) {
+  auto context = std::make_unique<grpc::ClientContext>();
+  auto generic_msg = robot::generic_message{};
+  generic_msg.set_session_id(session_id);
+
+  stub->stop_camera_stream(context.get(), generic_msg, nullptr);
+}

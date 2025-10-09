@@ -12,7 +12,7 @@ robot_rpc_manager::robot_rpc_manager()
   is_running.store(true);
   periodic_thread = std::thread([this]() {
     while (is_running.load()) {
-      std::this_thread::sleep_for(std::chrono::seconds(1));
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       cleanup_sessions();
     }
   });
@@ -28,8 +28,15 @@ robot_rpc_manager::~robot_rpc_manager() {
 grpc::Status robot_rpc_manager::stop_camera_stream(grpc::ServerContext* context, const robot::generic_message* request,
                                                    robot::response_message* response) {
   // Implementation of the method
-  response->set_session_id(request->session_id());
-  response->set_success(true);
+  try {
+    stop_camera_session(request->session_id());
+    response->set_success(true);
+  } catch (const std::exception& e) {
+    LOG_ERROR(logger, "Error stopping camera stream: {}", e.what());
+    response->set_success(false);
+    return grpc::Status(grpc::StatusCode::INTERNAL, e.what());
+  }
+
   return grpc::Status::OK;
 }
 
@@ -62,7 +69,7 @@ std::string robot_rpc_manager::init_camera_stream(
   return sid;
 }
 
-void robot_rpc_manager::stop_camera_stream(const std::string& session_id) {
+void robot_rpc_manager::stop_camera_session(const std::string& session_id) {
   std::lock_guard<std::mutex> lock(mtx);
   auto it = sessions.find(session_id);
   if (it != sessions.end()) {

@@ -1,5 +1,9 @@
 #include "server/sessions/camera_receiver.hpp"
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 #include <chrono>
 
 #include "common/chat_utils.hpp"
@@ -7,74 +11,82 @@
 using namespace std::chrono_literals;
 
 camera_receiver::camera_receiver(const std::string& sid, std::shared_ptr<robot::robot_service::Stub> stub)
-    : base_session{sid}, stub{stub}, pc{nullptr}, watchdog_running{false} {
-  watchdog_running.store(true);
-//   watchdog_thread = std::thread([this]() {
-//     while (watchdog_running.load()) {
-//       if (!tracks.empty() && std::chrono::steady_clock::now() - last_packet_time.load() > 1s) {
-//         LOG_WARNING(logger, "No RTP packets received for 1 second, marking session inactive");
-//         session_active.store(false);
-//       }
-//     }
-//   });
-// }
+    : base_session{sid}, stub{stub}, pc{nullptr}, watchdog_running{false} {}
 
 camera_receiver::~camera_receiver() {
   watchdog_running.store(false);
   if (watchdog_thread.joinable()) {
     watchdog_thread.join();
   }
+
+  ::close(sock);
 }
 
 std::string camera_receiver::create_receiver(const std::string& offer_sdp) {
   // Synchronization primitives
-  auto answer_sdp = std::string{};
-  auto cv = std::condition_variable{};
-  auto cv_mtx = std::mutex{};
+
   pc = std::make_shared<rtc::PeerConnection>(config);  // Create a new PeerConnection
 
   // set up callbacks
-  pc->onGatheringStateChange(
-      [this](rtc::PeerConnection::GatheringState s) { LOG_DEBUG(logger, "Gathering state: {}", static_cast<int>(s)); });
-  pc->onLocalDescription([this](rtc::Description desc) {
-    LOG_DEBUG(logger, "Local description set: type={} size={} bytes", desc.typeString(), desc.generateSdp().size());
-  });
-  pc->onGatheringStateChange([&](rtc::PeerConnection::GatheringState state) {
+  pc->onGatheringStateChange([this](rtc::PeerConnection::GatheringState state) {
     if (state == rtc::PeerConnection::GatheringState::Complete) {
       auto answer = pc->localDescription();
       if (answer.has_value()) {
         answer_sdp = answer->generateSdp();
-        LOG_DEBUG(logger, "ICE gathering complete, answer SDP size: {}", answer_sdp.size());
         cv.notify_all();
-      } else {
-        LOG_ERROR(logger, "Local description not set at gathering complete");
       }
     }
   });
 
-  rtc::Description::Video media("video", rtc::Description::Direction::RecvOnly);
+  auto media = rtc::Description::Video("video", rtc::Description::Direction::RecvOnly);
   media.addH264Codec(96);
-  media.setBitrate(3000);  // Request 3Mbps (Browsers do not encode more than 2.5MBps from a webcam)
+  media.setBitrate(5000);  // Request 5Mbps (Browsers do not encode more than 2.5MBps from a webcam)
 
-  auto track = pc->addTrack(media);
+  sock = socket(AF_INET, SOCK_DGRAM, 0);
+  sockaddr_in rtp_addr{};
+  rtp_addr.sin_family = AF_INET;
+  rtp_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+  rtp_addr.sin_port = htons(7000);  // Port where the Facial Recognition engine listens for RTP
+
+  track = pc->addTrack(media);
 
   rtcp_session = std::make_shared<rtc::RtcpReceivingSession>();
   track->setMediaHandler(rtcp_session);
   track->onMessage(
-      [this](rtc::binary message) {
+      [this, rtp_addr](rtc::binary message) {
         // This is an RTP packet
-        LOG_DEBUG(logger, "Received RTP packet of size {} on session", message.size());
         last_packet_time.store(std::chrono::steady_clock::now());
+        sendto(sock, reinterpret_cast<const char*>(message.data()), int(message.size()), 0,
+               reinterpret_cast<const struct sockaddr*>(&rtp_addr), sizeof(rtp_addr));
       },
-      nullptr);
-  track->onOpen([this] { LOG_DEBUG(logger, "track opened"); });
+      [this](const std::string& error) {
+        // This is an RTP error packet
+        LOG_DEBUG(logger, "Received RTP packet error: {}", error);
+      });
+  track->onOpen([this] {
+    watchdog_running.store(true);
+    watchdog_thread = std::thread([this]() {
+      while (session_active.load()) {
+        std::this_thread::sleep_for(500ms);
+
+        auto now = std::chrono::steady_clock::now();
+        auto last_packet = last_packet_time.load();
+
+        // Check if we haven't received any packets for 500ms
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last_packet).count() > 500) {
+          // Close the track to trigger cleanup
+          if (track) {
+            track->close();
+          }
+          session_active.store(false);
+          break;
+        }
+      }
+    });
+  });
   track->onClosed([this] {
     session_active.store(false);
-    LOG_DEBUG(logger, "track closed");
   });
-
-  // Make tracks persistent to avoid being GC'd
-  tracks.emplace_back(std::move(track));
 
   // Execution steps:
   // 1. Set remote description (offer from client)

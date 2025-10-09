@@ -4,9 +4,12 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <rtc/rtc.hpp>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <unordered_set>
 #include <vector>
@@ -26,11 +29,18 @@ class camera_receiver final : public base_session {
   rtc::Configuration config{};  // customize (STUN/TURN) as needed
   std::shared_ptr<rtc::PeerConnection> pc;
   std::shared_ptr<rtc::RtcpReceivingSession> rtcp_session;
-  std::vector<std::shared_ptr<rtc::Track>> tracks;
+  std::shared_ptr<rtc::Track> track;  // single track for this receiver
+
+  std::string answer_sdp{};
+  std::condition_variable cv{};
+  std::mutex cv_mtx{};
 
   std::thread watchdog_thread;
   std::atomic<bool> watchdog_running;
   std::atomic<std::chrono::steady_clock::time_point> last_packet_time;
+
+  // RTP forwarding
+  int sock;
 
  public:
   camera_receiver() = delete;

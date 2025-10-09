@@ -12,10 +12,9 @@
 
 struct fault_state final : bot {
   auto entry() -> void override {
-    LOG_WARNING(logger, "[fault::entry] Entering fault state, performing cleanup and logging");
     // Perform cleanup and logging here
     // After handling the fault, automatically transition back to idle state
-    transit<idle_state>([]() -> void { LOG_WARNING(logger, "[fault::entry] Recovering to idle state"); });
+    transit<idle_state>([]() -> void { LOG_DEBUG(logger, "[fault::entry] Recovering to idle state"); });
   }
 
   auto get_state() const -> client_state override { return client_state::FAULT; }
