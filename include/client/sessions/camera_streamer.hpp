@@ -53,7 +53,7 @@ class camera_streamer final : public base_session {
   constexpr static size_t BUFFER_SIZE = 212992;  // max UDP packet size for RTP over IPv4
   constexpr static size_t SSRC = 42;             // arbitrary SSRC for the video track
   constexpr static size_t PAYLOAD_TYPE = 96;     // must match the payload type of the external h264 RTP stream
-  constexpr static size_t TIMEOUT = 5;           // timeout to stop waiting for uplink to open
+  constexpr static size_t TIMEOUT = 10;          // timeout to stop after no response from server
   static std::unordered_map<int, capture> captures;
 
  private:

@@ -13,6 +13,7 @@
 #include <thread>
 #include <unordered_set>
 #include <vector>
+#include <future>
 
 #include "common/chat_utils.hpp"
 #include "common/sessions/base_session.hpp"
@@ -38,6 +39,7 @@ class camera_receiver final : public base_session {
   std::thread watchdog_thread;
   std::atomic<bool> watchdog_running;
   std::atomic<std::chrono::steady_clock::time_point> last_packet_time;
+  std::promise<bool> greeting_promise;
 
   // RTP forwarding
   int sock;

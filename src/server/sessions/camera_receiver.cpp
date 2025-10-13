@@ -2,13 +2,17 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <poll.h>
 #include <sys/socket.h>
 
 #include <chrono>
+#include <vector>
 
 #include "common/chat_utils.hpp"
 
 using namespace std::chrono_literals;
+
+static std::mutex cin_mtx;  // to synchronize console input (testing)
 
 camera_receiver::camera_receiver(const std::string& sid, std::shared_ptr<robot::robot_service::Stub> stub)
     : base_session{sid}, stub{stub}, pc{nullptr}, watchdog_running{false} {}
@@ -65,6 +69,30 @@ std::string camera_receiver::create_receiver(const std::string& offer_sdp) {
       });
   track->onOpen([this] {
     watchdog_running.store(true);
+
+    // std::thread([this]() -> void {
+    //   auto fds = std::vector<pollfd>{{STDIN_FILENO, POLLIN, 0}};
+    //   LOG_DEBUG(logger, "Track opened on session {}, started receiving", session_id);
+    //   LOG_DEBUG(logger, "Please enter greeting response within 5 seconds... Greeted? (y/n): ");
+
+    //   std::unique_lock<std::mutex> lock(cin_mtx);
+    //   int ret = poll(fds.data(), fds.size(), 5000);  // 5 seconds timeout (basically cin with timeout)
+    //   char response{};
+    //   if (ret > 0) {
+    //     std::cin >> response;
+    //     lock.unlock();
+
+    //     if (response == 'y' || response == 'Y') {
+    //       LOG_DEBUG(logger, "Greeted...");
+    //       greeting_promise.set_value(true);
+    //     } else {
+    //       LOG_DEBUG(logger, "Not greeted...");
+    //       session_active.store(false);
+    //       greeting_promise.set_value(false);
+    //     }
+    //   }
+    // }).detach();
+
     watchdog_thread = std::thread([this]() {
       while (session_active.load()) {
         std::this_thread::sleep_for(500ms);
