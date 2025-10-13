@@ -9,6 +9,8 @@
 
 class zed_camera final : public generic_camera {
  private:
+  const int SN = 30477778;
+  
   sl::Camera camera;
   sl::InitParameters init_params;
   sl::StreamingParameters stream_params;
@@ -26,7 +28,7 @@ class zed_camera final : public generic_camera {
 
  public:
   zed_camera();
-  virtual ~zed_camera() { stop(); }
+  virtual ~zed_camera() override { stop(); }
 
   auto start() -> bool override;
   auto stop() -> void override;

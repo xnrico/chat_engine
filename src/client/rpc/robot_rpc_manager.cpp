@@ -56,7 +56,7 @@ std::string robot_rpc_manager::init_camera_stream(
   // Implementation of the method
   auto sid = generate_id();
   std::lock_guard<std::mutex> lock(mtx);
-  sessions.try_emplace(sid, std::make_shared<camera_streamer>(sid, 6000, stub));
+  sessions.try_emplace(sid, std::make_shared<camera_streamer>(sid, 30000, stub));
 
   auto streamer = std::dynamic_pointer_cast<camera_streamer>(sessions[sid]);
   streamer->set_on_start(on_start);
