@@ -11,13 +11,11 @@
 //=============================================================================
 
 struct detect_speech_state final : bot {
-  auto react(const user_speech_detected_event& e) -> void override {
-    transit<wait_stream_speech_state>(
-        [&e]() -> void {
-          // Action function
-          LOG_INFO(logger, "[detect_speech::react] Speech detected, transitioning to wait_stream_speech_state");
-        },
-        [&e]() -> bool { return e.detected; });
+  auto react(const vad_success_event& e) -> void override {
+    transit<speech_state>([&e]() -> void {
+      // Action function
+      LOG_INFO(logger, "[detect_speech::react] Speech detected, transitioning to speech_state");
+    });
   }
 
   auto react(const timeout_event& e) -> void override {

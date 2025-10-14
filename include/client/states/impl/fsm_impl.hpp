@@ -9,6 +9,10 @@
 // STATE MACHINE DECLARATIONS
 //=============================================================================
 
+// Forward declarations to avoid circular dependencies
+class generic_camera;
+class robot_rpc_manager;
+
 struct bot : public tinyfsm::MealyMachine<bot> {
  public:
   static std::shared_ptr<generic_camera> camera;
@@ -24,18 +28,14 @@ struct bot : public tinyfsm::MealyMachine<bot> {
   virtual void react(const timeout_event&);
   virtual void react(const network_error_event&);
   virtual void react(const playback_error_event&);
-  virtual void react(const server_ready_event&);
   virtual void react(const init_success_event&);
   virtual void react(const camera_error_event&);
   virtual void react(const human_presence_event&);
-  virtual void react(const facial_recognition_response_event&);
+  virtual void react(const fr_success_event&);
   virtual void react(const greeting_success_event&);
-  virtual void react(const greeting_failure_event&);
-  virtual void react(const user_speech_detected_event&);
-  virtual void react(const stream_speech_success_event&);
-  virtual void react(const stream_speech_failure_event&);
-  virtual void react(const stream_response_success_event&);
-  virtual void react(const stream_response_failure_event&);
+  virtual void react(const vad_success_event&);
+  virtual void react(const speech_success_event&);
+  virtual void react(const response_success_event&);
 
   virtual void entry();
   virtual void exit();
@@ -73,10 +73,6 @@ inline void bot::react(const playback_error_event&) {
   LOG_DEBUG(logger, "[{}::react] cannot handle event [playback_error_event]", to_string(get_state()));
 }
 
-inline void bot::react(const server_ready_event&) {
-  LOG_DEBUG(logger, "[{}::react] cannot handle event [server_ready_event]", to_string(get_state()));
-}
-
 inline void bot::react(const init_success_event&) {
   LOG_DEBUG(logger, "[{}::react] cannot handle event [init_success_event]", to_string(get_state()));
 }
@@ -89,36 +85,24 @@ inline void bot::react(const human_presence_event&) {
   // LOG_DEBUG(logger, "[{}::react] cannot handle event [human_presence_event]", to_string(get_state()));
 }
 
-inline void bot::react(const facial_recognition_response_event&) {
-  LOG_DEBUG(logger, "[{}::react] cannot handle event [facial_recognition_response_event]", to_string(get_state()));
+inline void bot::react(const fr_success_event&) {
+  LOG_DEBUG(logger, "[{}::react] cannot handle event [fr_success_event]", to_string(get_state()));
 }
 
 inline void bot::react(const greeting_success_event&) {
   LOG_DEBUG(logger, "[{}::react] cannot handle event [greeting_success_event]", to_string(get_state()));
 }
 
-inline void bot::react(const greeting_failure_event&) {
-  LOG_DEBUG(logger, "[{}::react] cannot handle event [greeting_failure_event]", to_string(get_state()));
+inline void bot::react(const vad_success_event&) {
+  LOG_DEBUG(logger, "[{}::react] cannot handle event [vad_success_event]", to_string(get_state()));
 }
 
-inline void bot::react(const user_speech_detected_event&) {
-  LOG_DEBUG(logger, "[{}::react] cannot handle event [user_speech_detected_event]", to_string(get_state()));
+inline void bot::react(const speech_success_event&) {
+  LOG_DEBUG(logger, "[{}::react] cannot handle event [speech_success_event]", to_string(get_state()));
 }
 
-inline void bot::react(const stream_speech_success_event&) {
-  LOG_DEBUG(logger, "[{}::react] cannot handle event [stream_speech_success_event]", to_string(get_state()));
-}
-
-inline void bot::react(const stream_speech_failure_event&) {
-  LOG_DEBUG(logger, "[{}::react] cannot handle event [stream_speech_failure_event]", to_string(get_state()));
-}
-
-inline void bot::react(const stream_response_success_event&) {
-  LOG_DEBUG(logger, "[{}::react] cannot handle event [stream_response_success_event]", to_string(get_state()));
-}
-
-inline void bot::react(const stream_response_failure_event&) {
-  LOG_DEBUG(logger, "[{}::react] cannot handle event [stream_response_failure_event]", to_string(get_state()));
+inline void bot::react(const response_success_event&) {
+  LOG_DEBUG(logger, "[{}::react] cannot handle event [response_success_event]", to_string(get_state()));
 }
 
 inline void bot::entry() {}

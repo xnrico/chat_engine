@@ -4,8 +4,6 @@
 #include "client/states/client_state_manager.hpp"
 #include "common/chat_utils.hpp"
 
-using namespace grpc;
-
 using namespace std::chrono_literals;
 
 int main(int argc, char* argv[]) {

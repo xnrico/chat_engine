@@ -12,15 +12,10 @@
 
 struct idle_state final : bot {
   auto react(const human_presence_event& e) -> void override {
-    transit<wait_stream_camera_state>(
-        [this, &e]() -> void {
-          // Action function
-          LOG_INFO(logger, "[{}::react] Human present, transitioning to active state", to_string(get_state()));
-        },
-        [&e]() -> bool {
-          // Condition function
-          return e.present;
-        });
+    transit<recognition_state>([this]() -> void {
+      // Action function
+      LOG_DEBUG(logger, "[{}::react] Human present, transitioning to active state", to_string(get_state()));
+    });
   }
 
   auto get_state() const -> client_state override { return client_state::IDLE; }

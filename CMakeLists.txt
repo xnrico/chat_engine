@@ -15,6 +15,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
 set(CMAKE_BUILD_TYPE Debug)
 
+set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/proto")
+set(CPP_PROTO_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/grpc")
+set(PY_PROTO_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/fr/grpc")
+
 # ZED SDK Options
 # option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
 
@@ -68,24 +72,40 @@ target_link_libraries(chatproto
 target_include_directories(chatproto PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/proto")
 
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
+
+protobuf_generate(
+    TARGET chatproto        # The name of the target that manages generation
+    LANGUAGE python
+    IMPORT_DIRS ${PROTO_DIR}
+    PROTOC_OUT_DIR ${PY_PROTO_OUTPUT_DIR}
+    PLUGIN "protoc-gen-grpc=${Protobuf_GRPC_PLUGIN}"
+)
+
+# 5. ## NEW: Get the list of generated files and install them ##
+#    The `protobuf_generate` function attaches the list of generated
+#    output files to the SOURCES property of the target it creates.
+get_target_property(GENERATED_PROTO_PY_FILES chatproto SOURCES)
+
 protobuf_generate(
     TARGET chatproto
     LANGUAGE cpp
-    PROTOC_OUT_DIR "${CMAKE_SOURCE_DIR}/include/proto"
-    IMPORT_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src/proto"
+    PROTOC_OUT_DIR ${CPP_PROTO_OUTPUT_DIR}
+    IMPORT_DIRS ${PROTO_DIR}
 )
+
 protobuf_generate(
     TARGET chatproto
     LANGUAGE grpc
     GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
     PLUGIN "protoc-gen-grpc=${grpc_cpp_plugin_location}"
-    PROTOC_OUT_DIR "${CMAKE_SOURCE_DIR}/include/grpc"
-    IMPORT_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src/proto"
+    PROTOC_OUT_DIR ${CPP_PROTO_OUTPUT_DIR}
+    IMPORT_DIRS ${PROTO_DIR}
 )
 
 add_executable(chat_server
     ${SERVER_SRC}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/server_main.cpp)
+
 add_executable(chat_client
     ${CLIENT_SRC}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/client_main.cpp)

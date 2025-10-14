@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package fr;
+
+service fr_service {
+  rpc init_fr_request(fr_request_message) returns (fr_response_message);
+  rpc cancel_fr_request(fr_request_message) returns (fr_response_message);
+}
+
+// This message represents a user's identity, likely for Face Recognition (FR).
+message identity {
+  string id = 1;
+  string name = 2;
+  string language = 3;
+}
+
+// A request message for a face recognition operation.
+message fr_request_message {
+  string session_id = 1;
+}
+
+// The response from a face recognition operation.
+message fr_response_message {
+  string session_id = 1;
+  bool success = 2;
+  identity result = 3;
+}

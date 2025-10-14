@@ -24,13 +24,6 @@ struct playback_error_event : tinyfsm::Event {
   std::string name = "playback_error_event";
 };
 
-struct server_ready_event : tinyfsm::Event {
-  std::string name = "server_ready_event";
-  bool ready;
-  server_ready_event(bool r) : ready{r} {}
-  server_ready_event() : ready{true} {}
-};
-
 struct reset_event : tinyfsm::Event {
   std::string name = "reset_event";
 };
@@ -51,17 +44,11 @@ struct camera_error_event : tinyfsm::Event {
 /* Idle state events*/
 struct human_presence_event : tinyfsm::Event {
   std::string name = "human_presence_event";
-  bool present;
-  human_presence_event(bool p) : present{p} {}
-  human_presence_event() : present{true} {}
 };
 
 /* Stream events*/
-struct facial_recognition_response_event : tinyfsm::Event {
-  std::string name = "facial_recognition_response_event";
-  bool greeted;  // Indicates if the user was greeted
-  facial_recognition_response_event(bool g) : greeted{g} {}
-  facial_recognition_response_event() : greeted{false} {}
+struct fr_success_event : tinyfsm::Event {
+  std::string name = "fr_success_event";
 };
 
 /* Greeting events*/
@@ -69,32 +56,17 @@ struct greeting_success_event : tinyfsm::Event {
   std::string name = "greeting_success_event";
 };
 
-struct greeting_failure_event : tinyfsm::Event {
-  std::string name = "greeting_failure_event";
-};
-
 /* Detect speech events*/
-struct user_speech_detected_event : tinyfsm::Event {
-  std::string name = "user_speech_detected_event";
-  bool detected;
-  user_speech_detected_event(bool d) : detected{d} {}
-  user_speech_detected_event() : detected{true} {}
+struct vad_success_event : tinyfsm::Event {
+  std::string name = "vad_success_event";
 };
 
 /* Stream speech events*/
-struct stream_speech_success_event : tinyfsm::Event {
-  std::string name = "stream_speech_success_event";
-};
-
-struct stream_speech_failure_event : tinyfsm::Event {
-  std::string name = "stream_speech_failure_event";
+struct speech_success_event : tinyfsm::Event {
+  std::string name = "speech_success_event";
 };
 
 /* Stream response events*/
-struct stream_response_success_event : tinyfsm::Event {
-  std::string name = "stream_response_success_event";
-};
-
-struct stream_response_failure_event : tinyfsm::Event {
-  std::string name = "stream_response_failure_event";
+struct response_success_event : tinyfsm::Event {
+  std::string name = "response_success_event";
 };

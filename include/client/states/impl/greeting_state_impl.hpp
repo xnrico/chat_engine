@@ -14,14 +14,7 @@ struct greeting_state final : bot {
   auto react(const greeting_success_event& e) -> void override {
     transit<detect_speech_state>([&e]() -> void {
       // Action function
-      LOG_INFO(logger, "[greeting::react] Greeting successful, transitioning to detect_speech_state");
-    });
-  }
-
-  auto react(const greeting_failure_event& e) -> void override {
-    transit<fault_state>([&e]() -> void {
-      // Action function
-      LOG_ERROR(logger, "[greeting::react] Greeting failed, transitioning to fault_state");
+      LOG_DEBUG(logger, "[greeting::react] Greeting successful, transitioning to detect_speech_state");
     });
   }
 

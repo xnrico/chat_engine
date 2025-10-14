@@ -10,18 +10,18 @@
 // STATE DEFINITIONS
 //=============================================================================
 
-struct stream_response_state final : bot {
-  auto react(const stream_response_success_event& e) -> void override {
+struct response_state final : bot {
+  auto react(const response_success_event& e) -> void override {
     transit<detect_speech_state>([&e]() -> void {
       // Action function
-      LOG_INFO(logger, "[stream_response::react] Stream response successful, transitioning to detect_speech_state");
+      LOG_INFO(logger, "[response::react] Response successful, transitioning to detect_speech_state");
     });
   }
 
-  auto react(const stream_response_failure_event& e) -> void override {
+  auto react(const network_error_event& e) -> void override {
     transit<fault_state>([&e]() -> void {
       // Action function
-      LOG_ERROR(logger, "[stream_response::react] Stream response failed, transitioning to fault_state");
+      LOG_ERROR(logger, "[response::react] Response failed, transitioning to fault_state");
     });
   }
 
@@ -39,5 +39,5 @@ struct stream_response_state final : bot {
     });
   }
 
-  auto get_state() const -> client_state override { return client_state::STREAM_RESPONSE; }
+  auto get_state() const -> client_state override { return client_state::RESPONSE; }
 };

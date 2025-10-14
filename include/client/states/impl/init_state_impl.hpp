@@ -6,25 +6,23 @@
 #include <client/states/client_states.hpp>
 #include <tinyfsm/tinyfsm.hpp>
 
+#include "client/camera/generic_camera.hpp"
+
 //=============================================================================
 // STATE DEFINITIONS
 //=============================================================================
 
 struct init_state final : bot {
   auto entry() -> void override {
-    LOG_INFO(logger, "[{}::entry] Entering init state, performing initialization", to_string(get_state()));
     if (!camera->start()) bot::dispatch(camera_error_event{});
-    camera->set_on_human_detected([]() { bot::dispatch(human_presence_event{true}); });
-    camera->set_on_human_lost([]() { bot::dispatch(human_presence_event{false}); });
-    // client->set_on_stream_start([]() { bot::dispatch(server_ready_event{true}); });
-    // client->set_on_stream_failed([]() { bot::dispatch(server_ready_event{false}); });
+    camera->set_on_human_detected([]() { bot::dispatch(human_presence_event{}); });
     bot::dispatch(init_success_event{});
   }
 
   auto react(const init_success_event& e) -> void override {
     transit<idle_state>([this, &e]() -> void {
       // Action function
-      LOG_INFO(logger, "[{}::react] Initialization successful, transitioning to idle state", to_string(get_state()));
+      LOG_DEBUG(logger, "[{}::react] Initialization successful, transitioning to idle state", to_string(get_state()));
     });
   }
   auto react(const camera_error_event& e) -> void override {

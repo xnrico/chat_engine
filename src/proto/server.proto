@@ -1,33 +1,58 @@
-// server.proto
 syntax = "proto3";
 
 package server;
 
-// The main service for robot-server communication
-// server will be able to handle these rpc calls
-
 service server_service {
-	// robot tells server to initiate stream
-  // server returns status and the unique request id
-  rpc init_camera_stream(init_camera_offer) returns (init_camera_answer);
+  rpc init_greeting_request (greeting_request_message) returns (greeting_response_message);
+  rpc cancel_greeting_request (greeting_request_message) returns (greeting_response_message);
 }
 
-message generic_message {
+// An enum for robot commands.
+enum command {
+  COMMAND_UNSPECIFIED = 0;
+  MOVE_FORWARD = 1;
+  MOVE_BACKWARD = 2;
+  STOP = 3;
+}
+
+// This message represents a user's identity.
+message identity {
+  string id = 1;
+  string name = 2;
+  string language = 3;
+}
+
+// This message contains raw audio data.
+message audio {
+  int32 sample_rate = 1;
+  int32 channels = 2;
+  bytes data = 3;
+}
+
+// A request to initiate a greeting.
+message greeting_request_message {
   string session_id = 1;
-  uint32 data = 2;
+  identity person = 2;
 }
 
-message init_camera_offer {
-	string session_id = 1;
-	string sdp = 2;
-}
-
-message init_camera_answer {
-	string session_id = 1;
-	string sdp = 2;
-}
-
-message response_message {
+// The response to a greeting request.
+message greeting_response_message {
   string session_id = 1;
   bool success = 2;
+  audio data = 3;
+}
+
+// A message sent during a chat session.
+message chat_request_message {
+  string session_id = 1;
+  identity person = 2;
+  audio data = 3;
+}
+
+// The response to a chat message, which may include a command.
+message chat_response_message {
+  string session_id = 1;
+  bool success = 2;
+  audio data = 3;
+  command cmd = 4;
 }
