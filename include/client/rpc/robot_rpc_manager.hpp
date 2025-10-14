@@ -7,7 +7,7 @@
 #include <mutex>
 
 #include "common/chat_types.hpp"
-#include "common/lfu_map.hpp"
+#include "common/lru_map.hpp"
 #include "grpc/fr.grpc.pb.h"
 #include "grpc/robot.grpc.pb.h"
 #include "grpc/server.grpc.pb.h"
@@ -28,7 +28,7 @@ class robot_rpc_manager final : public robot::robot_service::Service {
   robot_rpc_manager();
   ~robot_rpc_manager() override;
 
-  lfu_map<std::string, std::shared_ptr<remote_session>> sessions_map_;  // thread safe
+  lru_map<std::string, std::shared_ptr<remote_session>> sessions_map_;  // thread safe
 
   // Calls to the server
   void init_fr_request(

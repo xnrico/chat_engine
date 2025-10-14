@@ -14,7 +14,6 @@ class generic_camera : public base_camera {
 
   // callback functions
   std::function<void()> on_human_detected;
-  std::function<void()> on_human_lost;
 
   std::atomic<bool> is_running;
   std::atomic<bool> human_detected;
@@ -32,9 +31,5 @@ class generic_camera : public base_camera {
 
   virtual auto set_on_human_detected(std::function<void()>&& callback) noexcept -> void {
     on_human_detected = std::move(callback);
-  }
-
-  virtual auto set_on_human_lost(std::function<void()>&& callback) noexcept -> void {
-    on_human_lost = std::move(callback);
   }
 };

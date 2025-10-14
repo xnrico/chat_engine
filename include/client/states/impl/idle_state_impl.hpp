@@ -14,7 +14,7 @@ struct idle_state final : bot {
   auto react(const human_presence_event& e) -> void override {
     transit<recognition_state>([this]() -> void {
       // Action function
-      LOG_DEBUG(logger, "[{}::react] Human present, transitioning to active state", to_string(get_state()));
+      LOG_DEBUG(logger, "[{}::react] Human present, transitioning to recognition state", to_string(get_state()));
     });
   }
 

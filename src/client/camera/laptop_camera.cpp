@@ -30,8 +30,6 @@ auto laptop_camera::process_objects() -> void {
   if (human_detected.exchange(human_present) != human_detected.load()) {
     if (human_detected.load()) {
       on_human_detected();
-    } else {
-      on_human_lost();
     }
   }
 }
