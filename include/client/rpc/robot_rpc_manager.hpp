@@ -6,6 +6,8 @@
 #include <memory>
 #include <mutex>
 
+#include "common/chat_types.hpp"
+#include "common/lfu_map.hpp"
 #include "grpc/fr.grpc.pb.h"
 #include "grpc/robot.grpc.pb.h"
 #include "grpc/server.grpc.pb.h"
@@ -15,6 +17,8 @@ class robot_rpc_manager final : public robot::robot_service::Service {
   constexpr static size_t MAX_SESSIONS = 10;
 
  private:
+  lfu_map<std::string, std::shared_ptr<remote_session>> sessions_map_;  // thread safe
+
   std::shared_ptr<grpc::Channel> channel;
   std::shared_ptr<server::server_service::Stub> server_stub;
   std::shared_ptr<fr::fr_service::Stub> fr_stub;

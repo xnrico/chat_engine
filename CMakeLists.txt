@@ -13,7 +13,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/proto")
 set(CPP_PROTO_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/grpc")
@@ -31,12 +31,6 @@ find_package(OpenCV REQUIRED)
 find_package(ZED REQUIRED)
 find_package(CUDA ${ZED_CUDA_VERSION} REQUIRED)
 find_package(quill REQUIRED)
-
-# Find libdatachannel
-find_library(DATACHANNEL_LIB datachannel REQUIRED)
-if(NOT DATACHANNEL_LIB)
-    message(FATAL_ERROR "libdatachannel not found")
-endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/utils/async_logger/include)
@@ -73,19 +67,42 @@ target_include_directories(chatproto PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include
 
 get_target_property(grpc_cpp_plugin_location gRPC::grpc_cpp_plugin LOCATION)
 
+# Find the Python gRPC plugin
+find_program(GRPC_PYTHON_PLUGIN grpc_python_plugin)
+if(NOT GRPC_PYTHON_PLUGIN)
+    message(WARNING "grpc_python_plugin not found. Python gRPC stubs will not be generated.")
+endif()
+
+# Generate Python protobuf files (_pb2.py)
 protobuf_generate(
     TARGET chatproto        # The name of the target that manages generation
     LANGUAGE python
     IMPORT_DIRS ${PROTO_DIR}
     PROTOC_OUT_DIR ${PY_PROTO_OUTPUT_DIR}
-    PLUGIN "protoc-gen-grpc=${Protobuf_GRPC_PLUGIN}"
 )
 
-# 5. ## NEW: Get the list of generated files and install them ##
-#    The `protobuf_generate` function attaches the list of generated
-#    output files to the SOURCES property of the target it creates.
-get_target_property(GENERATED_PROTO_PY_FILES chatproto SOURCES)
+# Generate Python gRPC files (_pb2_grpc.py) using custom command
+if(GRPC_PYTHON_PLUGIN)
+    foreach(PROTO_FILE ${PROTO_FILES})
+        get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
+        set(PY_GRPC_FILE "${PY_PROTO_OUTPUT_DIR}/${PROTO_NAME}_pb2_grpc.py")
+        
+        add_custom_command(
+            OUTPUT ${PY_GRPC_FILE}
+            COMMAND protobuf::protoc
+            ARGS --grpc_out=${PY_PROTO_OUTPUT_DIR}
+                 --plugin=protoc-gen-grpc=${GRPC_PYTHON_PLUGIN}
+                 -I ${PROTO_DIR}
+                 ${PROTO_FILE}
+            DEPENDS ${PROTO_FILE}
+            COMMENT "Generating Python gRPC stub for ${PROTO_NAME}"
+        )
+        
+        target_sources(chatproto PRIVATE ${PY_GRPC_FILE})
+    endforeach()
+endif()
 
+# Generate C++ protobuf files
 protobuf_generate(
     TARGET chatproto
     LANGUAGE cpp
@@ -93,6 +110,7 @@ protobuf_generate(
     IMPORT_DIRS ${PROTO_DIR}
 )
 
+# Generate C++ gRPC files
 protobuf_generate(
     TARGET chatproto
     LANGUAGE grpc
@@ -119,7 +137,6 @@ endif()
 
 
 target_link_libraries(chat_server chatproto)
-target_link_libraries(chat_server ${DATACHANNEL_LIB})
 target_link_libraries(chat_server Threads::Threads)
 target_link_libraries(chat_server quill::quill)
 
@@ -129,7 +146,6 @@ target_link_libraries(chat_client quill::quill)
 target_link_libraries(chat_client ${ZED_LIBS})
 target_link_libraries(chat_client ${OpenCV_LIBS})
 target_link_libraries(chat_client ${ZED_LIBS})
-target_link_libraries(chat_client ${DATACHANNEL_LIB})
 
 # Ensure executables can find libchatproto.so at runtime when running from the build tree
 set_target_properties(chat_client chat_server PROPERTIES
