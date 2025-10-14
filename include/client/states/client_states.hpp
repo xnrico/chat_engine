@@ -5,6 +5,8 @@
 #include <string>
 #include <thread>
 
+#include "client/rpc/robot_rpc_manager.hpp"
+#include "common/chat_types.hpp"
 #include "tinyfsm/tinyfsm.hpp"
 
 using namespace std::chrono_literals;

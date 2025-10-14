@@ -17,13 +17,9 @@ class robot_rpc_manager final : public robot::robot_service::Service {
   constexpr static size_t MAX_SESSIONS = 10;
 
  private:
-  lfu_map<std::string, std::shared_ptr<remote_session>> sessions_map_;  // thread safe
-
   std::shared_ptr<grpc::Channel> channel;
   std::shared_ptr<server::server_service::Stub> server_stub;
   std::shared_ptr<fr::fr_service::Stub> fr_stub;
-
-  mutable std::mutex mtx;  // to protect sessions map
 
   std::thread periodic_thread;
   std::atomic<bool> is_running;
@@ -32,7 +28,13 @@ class robot_rpc_manager final : public robot::robot_service::Service {
   robot_rpc_manager();
   ~robot_rpc_manager() override;
 
+  lfu_map<std::string, std::shared_ptr<remote_session>> sessions_map_;  // thread safe
+
   // Calls to the server
-  std::string init_camera_stream();
-  void stop_camera_session(const std::string& session_id);
+  void init_fr_request(
+      const std::string& session_id, size_t timeout = 5U, std::function<void()> on_success = []() {},
+      std::function<void()> on_failure = []() {}, std::function<void()> on_timeout = []() {});  // 5s timeout
+  void cancel_fr_request(
+      const std::string& session_id, size_t timeout = 5U, std::function<void()> on_success = []() {},
+      std::function<void()> on_failure = []() {}, std::function<void()> on_timeout = []() {});  // 5s timeout
 };
