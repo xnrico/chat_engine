@@ -5,9 +5,10 @@
 #include "common/chat_utils.hpp"
 
 robot_rpc_manager::robot_rpc_manager()
-    : channel{grpc::CreateChannel("localhost:6001", grpc::InsecureChannelCredentials())},
-      server_stub{server::server_service::NewStub(channel)},
-      fr_stub{fr::fr_service::NewStub(channel)} {
+    : server_channel{grpc::CreateChannel("localhost:6001", grpc::InsecureChannelCredentials())},
+      server_stub{server::server_service::NewStub(server_channel)},
+      fr_channel{grpc::CreateChannel("localhost:6003", grpc::InsecureChannelCredentials())},
+      fr_stub{fr::fr_service::NewStub(fr_channel)} {
   // Constructor body (if needed)
 }
 
@@ -32,6 +33,11 @@ void robot_rpc_manager::init_fr_request(const std::string& session_id, size_t ti
 
   if (status.ok()) {
     // Handle successful response
+    LOG_DEBUG(logger,
+              "\nreceived recognition response:\nsession_id = {}\nsuccess = {}\nresult.id = {}\nresult.name = "
+              "{}\nresult.language = {}",
+              response.session_id(), response.success(), response.result().id(), response.result().name(),
+              response.result().language());
     on_success();
   } else if (status.error_code() == grpc::StatusCode::DEADLINE_EXCEEDED) {
     // Handle error timeout

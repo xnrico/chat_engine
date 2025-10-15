@@ -14,6 +14,7 @@
 
 struct init_state final : bot {
   auto entry() -> void override {
+    LOG_DEBUG(logger, "[{}::entry] Entering init state", to_string(get_state()));
     if (!camera->start()) bot::dispatch(camera_error_event{});
     camera->set_on_human_detected([]() { bot::dispatch(human_presence_event{}); });
     bot::dispatch(init_success_event{});

@@ -11,6 +11,8 @@
 //=============================================================================
 
 struct greeting_state final : bot {
+  auto entry() -> void override { LOG_DEBUG(logger, "[greeting::entry] Entering greeting_state"); }
+
   auto react(const greeting_success_event& e) -> void override {
     transit<detect_speech_state>([&e]() -> void {
       // Action function

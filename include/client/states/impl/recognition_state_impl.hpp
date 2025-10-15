@@ -12,11 +12,9 @@
 
 struct recognition_state final : bot {
   auto entry() -> void override {
+    LOG_DEBUG(logger, "[{}::entry] Entering recognition state", to_string(get_state()));
     // Smart pointer with custom deleter to ensure session is cancelled on deletion
     auto uid = generate_id();
-    LOG_DEBUG(logger, "Map capacity: {}, size before insert: {}", 
-              bot::rpc_manager->sessions_map_.capacity(),
-              bot::rpc_manager->sessions_map_.size());
     bot::rpc_manager->sessions_map_.emplace(
         uid, std::shared_ptr<remote_session>{
                  // First argument: remote_session object created on heap
@@ -24,8 +22,7 @@ struct recognition_state final : bot {
                                     .request_time = std::chrono::steady_clock::now(),
                                     .target = remote_target::FR,
                                     .future = std::async(std::launch::async,
-                                                         [uid = std::move(uid)]() {
-                                                           LOG_DEBUG(logger, "Sending FR request for session: {}", uid);
+                                                         [uid]() {
                                                            bot::rpc_manager->init_fr_request(
                                                                uid, 5UL, []() { bot::dispatch(fr_success_event{}); },
                                                                []() { bot::dispatch(network_error_event{}); },
@@ -40,7 +37,6 @@ struct recognition_state final : bot {
                      auto request = fr::fr_request_message{};
                      request.set_session_id(p->session_id);
                      bot::rpc_manager->cancel_fr_request(p->session_id);
-                     LOG_DEBUG(logger, "Cancelled FR session {} upon deletion", p->session_id);
                    }
 
                    delete p;

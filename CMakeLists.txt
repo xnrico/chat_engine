@@ -17,7 +17,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/proto")
 set(CPP_PROTO_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/grpc")
-set(PY_PROTO_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/fr/grpc")
+set(PY_PROTO_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/fr/fr_server")
 
 # ZED SDK Options
 # option(LINK_SHARED_ZED "Link with the ZED SDK shared executable" ON)
@@ -73,33 +73,30 @@ if(NOT GRPC_PYTHON_PLUGIN)
     message(WARNING "grpc_python_plugin not found. Python gRPC stubs will not be generated.")
 endif()
 
-# Generate Python protobuf files (_pb2.py)
-protobuf_generate(
-    TARGET chatproto        # The name of the target that manages generation
-    LANGUAGE python
-    IMPORT_DIRS ${PROTO_DIR}
-    PROTOC_OUT_DIR ${PY_PROTO_OUTPUT_DIR}
-)
-
-# Generate Python gRPC files (_pb2_grpc.py) using custom command
+# Generate Python protobuf and gRPC files using custom commands
 if(GRPC_PYTHON_PLUGIN)
     foreach(PROTO_FILE ${PROTO_FILES})
         get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
+        set(PY_PB2_FILE "${PY_PROTO_OUTPUT_DIR}/${PROTO_NAME}_pb2.py")
         set(PY_GRPC_FILE "${PY_PROTO_OUTPUT_DIR}/${PROTO_NAME}_pb2_grpc.py")
-        
+
         add_custom_command(
-            OUTPUT ${PY_GRPC_FILE}
+            OUTPUT ${PY_PB2_FILE} ${PY_GRPC_FILE}
             COMMAND protobuf::protoc
-            ARGS --grpc_out=${PY_PROTO_OUTPUT_DIR}
-                 --plugin=protoc-gen-grpc=${GRPC_PYTHON_PLUGIN}
-                 -I ${PROTO_DIR}
-                 ${PROTO_FILE}
+            ARGS --python_out=${PY_PROTO_OUTPUT_DIR}
+            --pyi_out=${PY_PROTO_OUTPUT_DIR}
+            --grpc_out=${PY_PROTO_OUTPUT_DIR}
+            --plugin=protoc-gen-grpc=${GRPC_PYTHON_PLUGIN}
+            -I ${PROTO_DIR}
+            ${PROTO_FILE}
             DEPENDS ${PROTO_FILE}
-            COMMENT "Generating Python gRPC stub for ${PROTO_NAME}"
+            COMMENT "Generating Python protobuf and gRPC stubs for ${PROTO_NAME}"
         )
-        
-        target_sources(chatproto PRIVATE ${PY_GRPC_FILE})
+
+        target_sources(chatproto PRIVATE ${PY_PB2_FILE} ${PY_GRPC_FILE})
     endforeach()
+else()
+    message(WARNING "grpc_python_plugin not found. Python gRPC stubs will not be generated.")
 endif()
 
 # Generate C++ protobuf files

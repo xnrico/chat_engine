@@ -21,7 +21,8 @@ auto zed_camera::detect_objects() -> void {
   ret = camera.setObjectDetectionRuntimeParameters(runtime_params);
   // Camera successfully enabled object detection with runtime parameters
 
-  ret = camera.enableStreaming(stream_params);
+  ret = camera.enableStreaming(stream_params);  // this would start new threads, if not received, there will be frequent
+                                                // thread creations and exits
 
   while (is_running.load()) {
     if (camera.grab() == sl::ERROR_CODE::SUCCESS) {
@@ -52,11 +53,11 @@ auto zed_camera::process_objects() -> void {
   for (const auto &obj : objects.object_list) {
     if (obj.label == sl::OBJECT_CLASS::PERSON) {
       max_confidence = std::max(max_confidence, obj.confidence);
-      
+
       // Use hysteresis: higher threshold when transitioning to detected,
       // lower threshold when already detected
       float threshold = stable_human_detected ? CONFIDENCE_THRESHOLD_LOW : CONFIDENCE_THRESHOLD_HIGH;
-      
+
       if (obj.confidence > threshold) {
         human_present_in_frame = true;
         break;
@@ -66,7 +67,7 @@ auto zed_camera::process_objects() -> void {
 
   // Add current detection to history
   detection_history.push_back(human_present_in_frame);
-  
+
   // Keep history window at fixed size
   if (detection_history.size() > DETECTION_WINDOW_SIZE) {
     detection_history.pop_front();
@@ -81,7 +82,7 @@ auto zed_camera::process_objects() -> void {
   // Only change state if we have enough history
   if (detection_history.size() == DETECTION_WINDOW_SIZE) {
     bool should_be_detected = false;
-    
+
     // Apply different thresholds based on current state (hysteresis)
     if (stable_human_detected) {
       // Currently detected: require fewer detections to stay in detected state
@@ -93,24 +94,20 @@ auto zed_camera::process_objects() -> void {
 
     // Check debounce timer
     auto now = std::chrono::steady_clock::now();
-    auto time_since_last_change = std::chrono::duration_cast<std::chrono::milliseconds>(
-        now - last_state_change);
+    auto time_since_last_change = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_state_change);
 
     // Only trigger callback if state changes and debounce period has elapsed
-    if (should_be_detected != stable_human_detected && 
-        time_since_last_change >= MIN_STATE_DURATION) {
-      
+    if (should_be_detected != stable_human_detected && time_since_last_change >= MIN_STATE_DURATION) {
       stable_human_detected = should_be_detected;
       human_detected.store(stable_human_detected);
       last_state_change = now;
 
       if (stable_human_detected) {
-        LOG_DEBUG(logger, "Human detected (confidence: {:.1f}%, {}/{} frames)", 
-                  max_confidence, detection_count, DETECTION_WINDOW_SIZE);
+        LOG_DEBUG(logger, "Human detected (confidence: {:.1f}%, {}/{} frames)", max_confidence, detection_count,
+                  DETECTION_WINDOW_SIZE);
         on_human_detected();
       } else {
-        LOG_DEBUG(logger, "Human lost ({}/{} frames)", 
-                  detection_count, DETECTION_WINDOW_SIZE);
+        LOG_DEBUG(logger, "Human lost ({}/{} frames)", detection_count, DETECTION_WINDOW_SIZE);
       }
     }
   }
