@@ -63,27 +63,17 @@ class FRServer(fr_pb2_grpc.fr_serviceServicer):
         session_id: str = request.session_id
         self.logger.debug(f"Received init_fr_request for session {session_id}")
 
-        # Generate random identity
-        random_name: str = random.choice(self.test_names)
-        random_language: str = random.choice(self.test_languages)
-        random_id: str = f"user_{random.randint(1000, 9999)}"
-
         # Create or update session
         if session_id not in self.sessions_:
             self.sessions_[session_id] = FRServer.RemoteSession(session_id)
 
-        session: FRServer.RemoteSession = self.sessions_[session_id]
-        session.set_name(random_name)
-        session.set_language(random_language)
+        # session: FRServer.RemoteSession = self.sessions_[session_id]
 
-        # Log the request
-        self.logger.debug(
-            f"will return init_fr_request for session {session_id}: {random_name} ({random_language})"
-        )
+        id, name, language = self.worker_.faceid()
 
         # Create identity message
         identity: fr_pb2.identity = fr_pb2.identity(
-            id=random_id, name=random_name, language=random_language
+            id=id, name=name, language=language
         )
 
         self.logger.debug(f"returning status for session {session_id}")

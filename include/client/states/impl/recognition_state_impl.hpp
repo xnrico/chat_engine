@@ -43,7 +43,10 @@ struct recognition_state final : bot {
                  }});  // Custom deleter
   }
 
-  auto react(const fr_success_event& e) -> void override { transit<greeting_state>(); }
+  auto react(const fr_success_event& e) -> void override {
+    transit<idle_state>();
+  }  // go to greeting_state, now using idle_state for testing
+  
   auto react(const timeout_event& e) -> void override { transit<fault_state>(); }
   auto react(const network_error_event& e) -> void override { transit<fault_state>(); }
   auto get_state() const -> client_state override { return client_state::RECOGNITION; }

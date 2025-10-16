@@ -4,6 +4,9 @@
 **/build/
 **/bin/
 
+# python caches
+**/__pycache__/
+
 # submodules
 
 # Protobuf generated files
